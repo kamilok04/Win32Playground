@@ -1,0 +1,41 @@
+#ifndef IDC_STATIC
+#define IDC_STATIC (-1)
+#endif
+
+#define IDR_MAIN_MENU                           101
+#define IDD_O_PROGRAMIE                         104
+#define IDR_TRIG                                106
+#define IDD_TRIG                                108
+#define IDI_PIVO                                111
+#define IDB_PIVO                                113
+#define IDR_AKCELERATOR_CZASTECZEK              114
+#define IDR_TOOLBAR1                            115
+#define IDD_TREE_SETTINGS                       117
+#define IDR_TRIG_SPEEDRUN                       30000
+#define IDR_HELP_SPEEDRUN                       30001
+#define IDC_RADIO1                              40000
+#define IDC_TRIG_INDICATOR                      40000
+#define IDM__ZAKO_CZ_TALT_F1                    40000
+#define IDR_TREE_SPEEDRUN                       40000
+#define IDS_SINE                                40000
+#define IDC_RADIO2                              40001
+#define IDC_TRIG_RANGE_FROM                     40001
+#define IDM_W_A_CIWO_CI_GRAFIKI___1             40001
+#define IDS_COSINE                              40001
+#define IDC_LIST1                               40002
+#define IDC_TRIG_PRECISION                      40002
+#define IDM_O_PROGRAMIE____TF1                  40002
+#define IDS_TANGENT                             40002
+#define IDC_TRIG_FUNCTION_SELECT                40003
+#define IDS_COTANGENT                           40003
+#define IDC_PIVO                                40004
+#define IDM__POKAZ_TRYGONOMETRII___1            40004
+#define IDC_TRIG_RANGE_TO                       40005
+#define IDM_SINUS1                              40005
+#define IDM_COSINUS1                            40006
+#define IDM_NIC3                                40007
+#define IDM_TANGENS1                            40008
+#define IDM_COTANGENS1                          40009
+#define IDM_NIC1                                40011
+#define IDM_NIC2                                40012
+#define IDM_DRZEWKO___1                         40013
