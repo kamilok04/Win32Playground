@@ -85,7 +85,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				WNDCLASSEX* pwc = reinterpret_cast<WNDCLASSEX*>(GetWindowLongPtr(hwnd, 0));
 				pwc->lpfnWndProc = TreeWndProc;
 				pwc->cbWndExtra = 0;
-				pwc->style = CS_HREDRAW | CS_VREDRAW;
+			 	pwc->style = CS_HREDRAW | CS_VREDRAW;
 				pwc->lpszClassName = TEXT("Tree");
 				pwc->lpszMenuName = NULL;
 				atom = RegisterClassEx(pwc);
@@ -205,7 +205,7 @@ INT_PTR DefDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		LocalSize(lpDisplayBuf) / sizeof(TCHAR),
 		TEXT("%s zjeba³o siê z kodem: %d: %s."),
 		lpszFunc, kod, reinterpret_cast<STRSAFE_LPCWSTR>(lpMsgBuf));
-	MessageBox(NULL, (LPCTSTR)lpDisplayBuf, TEXT("o ni"), MB_ICONINFORMATION);
+	MessageBox(NULL, (LPCTSTR)lpDisplayBuf, TEXT("o ni"), MB_ICONINFORMATION | MB_CANCELTRYCONTINUE);
 
 	LocalFree(lpMsgBuf);
 	LocalFree(lpDisplayBuf);

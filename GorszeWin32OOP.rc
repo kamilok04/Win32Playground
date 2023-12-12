@@ -111,8 +111,8 @@ IDD_TREE_SETTINGS DIALOGEX 0, 0, 427, 225
 STYLE DS_ABSALIGN | DS_CONTROL | DS_SHELLFONT | WS_VISIBLE | WS_CHILDWINDOW
 FONT 8, "Ms Shell Dlg", 400, 0, 1
 {
-    CONTROL         "Symbole", IDC_STATIC, WC_BUTTON, BS_GROUPBOX, 115, 5, 215, 150, WS_EX_LEFT
-    CONTROL         "", IDC_LIST1, WC_LISTVIEW, WS_TABSTOP | WS_BORDER | LVS_ALIGNLEFT | LVS_EDITLABELS | LVS_REPORT, 120, 15, 208, 137, WS_EX_LEFT
+    CONTROL         "Symbole", IDC_STATIC, WC_BUTTON, BS_GROUPBOX, 115, 5, 220, 150, WS_EX_LEFT
+    CONTROL         "", IDC_TREE_LEAVES, WC_LISTVIEW, WS_TABSTOP | WS_BORDER | LVS_ALIGNLEFT | LVS_EDITLABELS | LVS_REPORT, 120, 15, 210, 135, WS_EX_LEFT
     CONTROL         "Częstość występowania", IDC_RADIO2, WC_BUTTON, BS_AUTORADIOBUTTON | BS_MULTILINE, 15, 45, 85, 20, WS_EX_LEFT
     CONTROL         "Prawdopodobieństwo wystąpienia", IDC_RADIO1, WC_BUTTON, BS_AUTORADIOBUTTON | BS_MULTILINE, 15, 20, 85, 20, WS_EX_LEFT
     CONTROL         "Tryb pracy", IDC_STATIC, WC_BUTTON, BS_GROUPBOX, 6, 6, 100, 65, WS_EX_LEFT
@@ -158,6 +158,10 @@ STRINGTABLE
     IDS_COSINE                    "Cosinus"
     IDS_TANGENT                   "Tangens"
     IDS_COTANGENT                 "Cotangens"
+    IDS_ORDER                     "L. p."
+    IDS_SYMBOL                    "Symbol"
+    IDS_PROB_VALUE                "Prawdopodobieństwo wystąpienia"
+    IDS_FREQ_VALUE                "Ilość wystąpień"
 }
 
 
