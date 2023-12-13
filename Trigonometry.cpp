@@ -1,13 +1,30 @@
 #include "Trigonometry.h"
-#define NPI(n) n*PI
-static const int num = 1000;
-static const double PI = 3.141592;
+#define KPI(k) k*PI
+#define MAX_POINTS 200
+#define PRECISION_TO_POINTS(n) MAX_POINTS * n / 100 
+
+static int num = 1000;
+static constexpr double PI = 3.141592;
+static struct TrigData TrigFunctions[4] = {
+	{TRUE	, 0, KPI(2), 15},
+	{TRUE	, 0, KPI(2), 15},
+	{TRUE	, 0, KPI(2), 15},
+	{TRUE	, 0, KPI(2), 15}
+};
+
+static HPEN kolory[HowManyTrigFunctions] = {
+	CreatePen(PS_SOLID, 5, CZERWONY),
+	CreatePen(PS_SOLID, 5, ZIELONY),
+	CreatePen(PS_SOLID, 5, NIEBIESKI),
+	CreatePen(PS_SOLID, 5, ZOLTY)
+};
 
 LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	static int cxClient = 0;
 	static int cyClient = 0;
+
 	PAINTSTRUCT ps{};
-	POINT punkty[num];
+	std::vector<POINT> punkty(num);
 	HDC hdc = NULL;
 	switch (uMsg) {
 	case WM_SIZE: {
@@ -18,19 +35,46 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 	case WM_PAINT: {
 
 		hdc = BeginPaint(hwnd, &ps);
+
+		// narysuj osie
 		MoveToEx(hdc, 0, cyClient / 2, NULL);
 		LineTo(hdc, cxClient, cyClient / 2);
-		for (size_t i = 0; i < num; i++) {
-			punkty[i].x = static_cast<LONG>(i * cxClient / num);
-			punkty[i].y = static_cast<LONG>(cyClient / 2 * (1 - sin(static_cast<long double>(i * 4 * PI / num)))); 
-			// tu jest du¿o rzutów, podziêkowania proszê s³aæ Microsoftowi
-			// i ich >40-letniemu API
+
+		SAMOCHÓD oldPen = SelectObject(hdc, GetStockObject(DC_PEN));	// zapisz stare pióro
+
+		for (INT iFunc = SINE; iFunc < HowManyTrigFunctions; iFunc++) {
+			TrigData currentFunction = TrigFunctions[iFunc];
+			if (currentFunction.drawn) {
+
+				if (punkty.size() <= (sizeof(POINT) * PRECISION_TO_POINTS(currentFunction.precision)))
+					punkty.resize(sizeof(POINT) * PRECISION_TO_POINTS(currentFunction.precision));
+				SelectObject(hdc, kolory[iFunc]);		// weŸ nowe pióro
+				for (size_t i = 0; i < PRECISION_TO_POINTS(currentFunction.precision); i++) {
+					punkty[i].x = static_cast<LONG>((cxClient * i) /currentFunction.precision);
+					long double yDraft = (i * (currentFunction.to - currentFunction.from) / PRECISION_TO_POINTS(currentFunction.precision));
+					long double sine = sin(yDraft);
+					long double cosine = cos(yDraft);
+					switch (iFunc) {
+					case SINE: punkty[i].y =  static_cast<LONG>(cyClient / (1 - sine)); break;
+					case COSINE: punkty[i].y = static_cast<LONG>(cyClient / (1 - cosine)); break;
+					case TANGENT: if (yDraft == 0) continue;  punkty[i].y = static_cast<LONG>(cyClient / (1 - (sine / cosine))); break;
+					case COTANGENT: if (yDraft == 0) continue; punkty[i].y = static_cast<LONG>(cyClient / (1 - (cosine / sine))); break;
+					}
+					// tu jest du¿o rzutów, podziêkowania proszê s³aæ Microsoftowi
+					// i ich >40-letniemu API
+				}
+				Polyline(hdc, punkty.data(), num);
+			}
 		}
-		Polyline(hdc, punkty, num);
+		SelectObject(hdc, oldPen);
 		return 0;
 	}
 	case WM_COMMAND: {
 		switch (LOWORD(wParam)) {
+		case IDM_COSINUS1: {
+
+			break;
+		}
 			case IDM_NIC1: {
 				DialogBox(NULL, MAKEINTRESOURCE(IDD_TRIG), hwnd, TrigDialogProc);
 				break;
@@ -40,6 +84,7 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 
 
 	case WM_DESTROY: {
+		FreeResource(kolory);
 		return 0;
 	}
 	default: break;
@@ -72,21 +117,22 @@ INT_PTR TrigDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		return TRUE;
 	case WM_CTLCOLORSTATIC:
 		HBRUSH brush;
-		if ((HWND)lParam == GetDlgItem(hwnd, IDC_TRIG_PRECISION))
+		HWND TrigHWND;
+		TrigHWND = (HWND)lParam;
+		if (TrigHWND == GetDlgItem(hwnd, IDC_TRIG_PRECISION))
 		{
-			SetBkMode((HDC)wParam, TRANSPARENT);
-			SetTextColor((HDC)wParam, RGB(255, 0, 0));
+			SetBkMode((HDC)(wParam), TRANSPARENT);
 			brush = GetSysColorBrush(COLOR_MENU);
-			return brush != NULL;
+			return (INT_PTR)brush;
 		}
-		if ((HWND)lParam == GetDlgItem(hwnd, IDC_TRIG_INDICATOR))
+		if (TrigHWND == GetDlgItem(hwnd, IDC_TRIG_INDICATOR))
 		{
-			SetBkMode((HDC)wParam, TRANSPARENT);
-			SetTextColor((HDC) wParam, RGB(255, 0, 0));
+			SetBkMode((HDC)(wParam), TRANSPARENT);
 			brush = GetSysColorBrush(COLOR_MENU);
-			return brush != NULL;
+			SetTextColor((HDC)(wParam), RGB(255, 0, 0));
+			return (INT_PTR) brush;
 		}
-		break;
+		return FALSE;
 	case WM_HSCROLL: // pasek
 		pos = static_cast<DWORD>(SendDlgItemMessage(hwnd, IDC_TRIG_PRECISION, TBM_GETPOS, 0, 0));
 		TCHAR posStr[10];
@@ -108,7 +154,6 @@ INT_PTR TrigDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			TCHAR str[200];
 			StringCchPrintf(str, 200, TEXT("Funkcja: %s\r\nZakres od: %s\r\nZakres do: %s\r\nPrecyzja: %d\r\n"), bufor, bufor2, bufor3, pos);
 			MessageBox(hwnd, str, TEXT("wiedza tajemna"), MB_ICONINFORMATION | MB_OK);
-
 			EndDialog(hwnd, IDOK);
 			break;
 		case IDCANCEL:

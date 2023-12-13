@@ -138,7 +138,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				WNDCLASSEX* pwc = reinterpret_cast<WNDCLASSEX*>(GetWindowLongPtr(hwnd, 0));
 				pwc->lpfnWndProc = TrigonometryWndProc;
 				pwc->cbWndExtra = 0;
-				pwc->style = CS_HREDRAW | CS_VREDRAW;
+				// pwc->style = CS_HREDRAW | CS_VREDRAW;
 				pwc->lpszClassName = TEXT("TrigDemo");
 				pwc->lpszMenuName = MAKEINTRESOURCE(IDR_TRIG);
 				atom = RegisterClassEx(pwc);;
