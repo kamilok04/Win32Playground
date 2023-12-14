@@ -6,17 +6,17 @@
 static int num = 1000;
 static constexpr double PI = 3.141592;
 static struct TrigData TrigFunctions[4] = {
-	{TRUE	, 0, KPI(2), 15},
-	{TRUE	, 0, KPI(2), 15},
-	{TRUE	, 0, KPI(2), 15},
-	{TRUE	, 0, KPI(2), 15}
+	{TRUE	, 0, KPI(6), 50},
+	{FALSE	, 0, KPI(6), 50},
+	{FALSE	, 0, KPI(6), 50},
+	{FALSE	, 0, KPI(6), 50}
 };
 
 static HPEN kolory[HowManyTrigFunctions] = {
-	CreatePen(PS_SOLID, 5, CZERWONY),
-	CreatePen(PS_SOLID, 5, ZIELONY),
-	CreatePen(PS_SOLID, 5, NIEBIESKI),
-	CreatePen(PS_SOLID, 5, ZOLTY)
+	CreatePen(PS_SOLID, 3, CZERWONY),
+	CreatePen(PS_SOLID, 3, ZIELONY),
+	CreatePen(PS_SOLID, 3, NIEBIESKI),
+	CreatePen(PS_SOLID, 3, ZOLTY)
 };
 
 LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -25,6 +25,7 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 
 	PAINTSTRUCT ps{};
 	std::vector<POINT> punkty(num);
+	punkty.reserve(2000);
 	HDC hdc = NULL;
 	switch (uMsg) {
 	case WM_SIZE: {
@@ -43,22 +44,23 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 		SAMOCHÓD oldPen = SelectObject(hdc, GetStockObject(DC_PEN));	// zapisz stare pióro
 
 		for (INT iFunc = SINE; iFunc < HowManyTrigFunctions; iFunc++) {
+			MoveToEx(hdc, 0, cyClient / 2, NULL);
 			TrigData currentFunction = TrigFunctions[iFunc];
 			if (currentFunction.drawn) {
-
-				if (punkty.size() <= (sizeof(POINT) * PRECISION_TO_POINTS(currentFunction.precision)))
-					punkty.resize(sizeof(POINT) * PRECISION_TO_POINTS(currentFunction.precision));
+				SIZE_T liczbaPunktow = PRECISION_TO_POINTS(currentFunction.precision);
+				if (punkty.size() != (liczbaPunktow))
+					punkty.resize(liczbaPunktow);
 				SelectObject(hdc, kolory[iFunc]);		// weŸ nowe pióro
-				for (size_t i = 0; i < PRECISION_TO_POINTS(currentFunction.precision); i++) {
-					punkty[i].x = static_cast<LONG>((cxClient * i) /currentFunction.precision);
-					long double yDraft = (i * (currentFunction.to - currentFunction.from) / PRECISION_TO_POINTS(currentFunction.precision));
+				for (size_t i = 0; i <  liczbaPunktow ; i++) {
+					punkty[i].x = static_cast<LONG>((cxClient * i) / liczbaPunktow);
+					long double yDraft = (i * (currentFunction.to - currentFunction.from) / liczbaPunktow);
 					long double sine = sin(yDraft);
 					long double cosine = cos(yDraft);
 					switch (iFunc) {
-					case SINE: punkty[i].y =  static_cast<LONG>(cyClient / (1 - sine)); break;
-					case COSINE: punkty[i].y = static_cast<LONG>(cyClient / (1 - cosine)); break;
-					case TANGENT: if (yDraft == 0) continue;  punkty[i].y = static_cast<LONG>(cyClient / (1 - (sine / cosine))); break;
-					case COTANGENT: if (yDraft == 0) continue; punkty[i].y = static_cast<LONG>(cyClient / (1 - (cosine / sine))); break;
+					case SINE: punkty[i].y =  static_cast<LONG>(cyClient * (sine + 1) / 2); break;
+					case COSINE: punkty[i].y = static_cast<LONG>(cyClient * (cosine + 1) / 2); break;
+					case TANGENT:  punkty[i].y = static_cast<LONG>(cyClient * (1 + sine / cosine) / 2); break;
+					case COTANGENT: punkty[i].y = static_cast<LONG>(cyClient * (1 + cosine / sine) / 2); break;
 					}
 					// tu jest du¿o rzutów, podziêkowania proszê s³aæ Microsoftowi
 					// i ich >40-letniemu API
