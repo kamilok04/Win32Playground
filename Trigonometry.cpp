@@ -1,13 +1,20 @@
 #include "Trigonometry.h"
+#include <stdbool.h>
 #define KPI(k) k*PI
 #define MAX_POINTS 200
 #define PRECISION_TO_POINTS(n) MAX_POINTS * n / 100 
 
 static int num = 1000;
 static constexpr double PI = 3.141592;
+
+// problemy:
+// - funkcje o mniejszym zakresie nie powinny siê rysowaæ w [0, cxClient], tylko w swoim zakresie
+// - jak dobrze narysowaæ tangensa/cotangensa?
+// - to s¹ funkcje OKRESOWE, naprawdê da siê to zoptymalizowaæ lepiej
+
 static struct TrigData TrigFunctions[4] = {
+	{TRUE	, KPI(-2), KPI(6), 50},
 	{TRUE	, 0, KPI(6), 50},
-	{FALSE	, 0, KPI(6), 50},
 	{FALSE	, 0, KPI(6), 50},
 	{FALSE	, 0, KPI(6), 50}
 };
@@ -25,7 +32,7 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 
 	PAINTSTRUCT ps{};
 	std::vector<POINT> punkty(num);
-	punkty.reserve(2000);
+	punkty.reserve(MAX_POINTS);
 	HDC hdc = NULL;
 	switch (uMsg) {
 	case WM_SIZE: {
@@ -38,37 +45,38 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 		hdc = BeginPaint(hwnd, &ps);
 
 		// narysuj osie
-		MoveToEx(hdc, 0, cyClient / 2, NULL);
-		LineTo(hdc, cxClient, cyClient / 2);
+		MoveToEx(hdc, cxClient, cyClient / 2, NULL);
+		LineTo(hdc, 0, cyClient / 2);
 
 		SAMOCHÓD oldPen = SelectObject(hdc, GetStockObject(DC_PEN));	// zapisz stare pióro
 
 		for (INT iFunc = SINE; iFunc < HowManyTrigFunctions; iFunc++) {
+
 			MoveToEx(hdc, 0, cyClient / 2, NULL);
 			TrigData currentFunction = TrigFunctions[iFunc];
 			if (currentFunction.drawn) {
 				SIZE_T liczbaPunktow = PRECISION_TO_POINTS(currentFunction.precision);
-				if (punkty.size() != (liczbaPunktow))
-					punkty.resize(liczbaPunktow);
+				if (punkty.size() != (liczbaPunktow+1))
+					punkty.resize(liczbaPunktow+1);
 				SelectObject(hdc, kolory[iFunc]);		// weŸ nowe pióro
-				for (size_t i = 0; i <  liczbaPunktow ; i++) {
+				for (size_t i = 0; i <=  liczbaPunktow ; i++) {
 					punkty[i].x = static_cast<LONG>((cxClient * i) / liczbaPunktow);
 					long double yDraft = (i * (currentFunction.to - currentFunction.from) / liczbaPunktow);
 					long double sine = sin(yDraft);
 					long double cosine = cos(yDraft);
 					switch (iFunc) {
-					case SINE: punkty[i].y =  static_cast<LONG>(cyClient * (sine + 1) / 2); break;
+					case SINE: punkty[i].y = static_cast<LONG>(cyClient * (sine + 1) / 2); break;
 					case COSINE: punkty[i].y = static_cast<LONG>(cyClient * (cosine + 1) / 2); break;
-					case TANGENT:  punkty[i].y = static_cast<LONG>(cyClient * (1 + sine / cosine) / 2); break;
-					case COTANGENT: punkty[i].y = static_cast<LONG>(cyClient * (1 + cosine / sine) / 2); break;
+					case TANGENT: if (cosine < 0.01) { punkty[i].y = (sine * cosine > 0) ? 0 : cyClient; continue; } punkty[i].y = static_cast<LONG>(cyClient * (1 + sine / cosine) / 2); break;
+					case COTANGENT: if (sine < 0.01) { punkty[i].y = (sine * cosine < 0) ? 0 : cyClient; continue; } punkty[i].y = static_cast<LONG>(cyClient * (1 + cosine / sine) / 2); break;
 					}
 					// tu jest du¿o rzutów, podziêkowania proszê s³aæ Microsoftowi
 					// i ich >40-letniemu API
 				}
-				Polyline(hdc, punkty.data(), num);
+				PolylineTo(hdc, punkty.data(), liczbaPunktow+1);
 			}
 		}
-		SelectObject(hdc, oldPen);
+		SelectObject(hdc, oldPen); // przywróæ stare pióro
 		return 0;
 	}
 	case WM_COMMAND: {
