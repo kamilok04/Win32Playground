@@ -13,15 +13,15 @@
 #define IDD_TREE_SETTINGS                       117
 #define IDR_TRIG_SPEEDRUN                       30000
 #define IDR_HELP_SPEEDRUN                       30001
-#define IDC_RADIO1                              40000
+#define IDC_RADIO_FREQ                          40000
 #define IDC_TRIG_INDICATOR                      40000
 #define IDM__ZAKO_CZ_TALT_F1                    40000
 #define IDR_TREE_SPEEDRUN                       40000
 #define IDS_SINE                                40000
-#define IDC_RADIO2                              40001
 #define IDC_TRIG_RANGE_FROM                     40001
 #define IDM_W_A_CIWO_CI_GRAFIKI___1             40001
 #define IDS_COSINE                              40001
+#define IDC_RADIO_PROB                          40002
 #define IDC_TRIG_PRECISION                      40002
 #define IDM_O_PROGRAMIE____TF1                  40002
 #define IDS_TANGENT                             40002

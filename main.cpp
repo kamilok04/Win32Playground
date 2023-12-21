@@ -2,11 +2,13 @@
 
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int iCmdShow) {
 
+	// utwórz g³ówne okno programu
+	 
 	WNDCLASSEX wc = {};
 	wc.cbSize = sizeof(WNDCLASSEX);
 	wc.lpfnWndProc = MainWndProc;
 	wc.cbClsExtra = 0;
-	wc.cbWndExtra = sizeof(WNDCLASSEX*); // +sizeof(CHUJ*);
+	wc.cbWndExtra = sizeof(WNDCLASSEX*);
 	wc.hInstance = hInstance;
 	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
@@ -14,7 +16,11 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	wc.lpszMenuName = MAKEINTRESOURCE(IDR_MAIN_MENU);
 	wc.lpszClassName = TEXT("Tekstowo");
 
-	ATOM atom = RegisterClassEx(&wc);
+	ATOM atom = RegisterClassEx(&wc); // zapisz identyfikator klasy (nazwa te¿ jest poprawnym identyfikatorem)
+	// w³asciwoœci okna:
+	// - przerysuj je przy jakiejkolwiek zmianie
+	// - widoczne od razu po utworzeniu
+	// - ma krawêdzie, pasek tytu³u, mo¿e wyœwietlaæ menu i ma dobrze zdefiniowane zachowania domyœlne
 	HWND hwnd = CreateWindowEx(0, reinterpret_cast<LPCTSTR>(atom), TEXT("okno"), CS_HREDRAW | CS_VREDRAW | WS_VISIBLE | WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
@@ -36,7 +42,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	// wczytaj akceleratory
 
 	HACCEL hAccel = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_AKCELERATOR_CZASTECZEK));
-	if (hAccel == NULL) SEPPUKU(TEXT("akcelerator"));
+	if (hAccel == NULL) AWARIA(TEXT("akcelerator"));
 
 	UpdateWindow(hwnd);
 
@@ -183,7 +189,7 @@ INT_PTR DefDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 }
 
 
-[[noreturn]] void SEPPUKU(LPCWSTR lpszFunc)
+[[noreturn]] void AWARIA(LPCWSTR lpszFunc)
 {
 	LPVOID lpMsgBuf;
 	LPVOID lpDisplayBuf;
