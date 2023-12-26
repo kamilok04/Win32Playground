@@ -100,6 +100,7 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
+
 INT_PTR TrigDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	UNREFERENCED_PARAMETER(lParam); // usuñ ostrze¿enie
 	// inicjalizacja wartoœci

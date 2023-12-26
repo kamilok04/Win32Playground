@@ -10,18 +10,23 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = sizeof(WNDCLASSEX*);
 	wc.hInstance = hInstance;
-	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+	wc.hIcon = reinterpret_cast<HICON>(LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_PIVO_256), IMAGE_ICON, 32, 26, NULL));
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
 	wc.lpszMenuName = MAKEINTRESOURCE(IDR_MAIN_MENU);
-	wc.lpszClassName = TEXT("Tekstowo");
+	wc.lpszClassName = TEXT("CPPDemo");
 
 	ATOM atom = RegisterClassEx(&wc); // zapisz identyfikator klasy (nazwa te¿ jest poprawnym identyfikatorem)
 	// w³asciwoœci okna:
 	// - przerysuj je przy jakiejkolwiek zmianie
 	// - widoczne od razu po utworzeniu
 	// - ma krawêdzie, pasek tytu³u, mo¿e wyœwietlaæ menu i ma dobrze zdefiniowane zachowania domyœlne
-	HWND hwnd = CreateWindowEx(0, reinterpret_cast<LPCTSTR>(atom), TEXT("okno"), CS_HREDRAW | CS_VREDRAW | WS_VISIBLE | WS_OVERLAPPEDWINDOW,
+#if defined DEBUG
+		LPCWSTR title = TEXT("Aplikacja (DEBUG)");
+#else
+		LPCWSTR title = TEXT("Aplikacja");
+#endif
+	HWND hwnd = CreateWindowEx(0, reinterpret_cast<LPCTSTR>(atom), title, CS_HREDRAW | CS_VREDRAW | WS_VISIBLE | WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
@@ -31,16 +36,13 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		NULL,
 		NULL);
 	if (hwnd == NULL) {
-		MessageBox(NULL, TEXT("chuj w dupe"), TEXT("okno"), MB_ICONINFORMATION);
-		return 1;
+		AWARIA(TEXT("Tworzenie g³ównego okna"));
 	}
 
-	// CHUJ chuj{ 0 };
 
 	SetWindowLongPtr(hwnd, 0, reinterpret_cast<LONG_PTR>(& wc));
-	//SetWindowLongPtr(hwnd, sizeof(WNDCLASSEX*), reinterpret_cast<LONG_PTR>(&chuj));
-	// wczytaj akceleratory
 
+	// wczytaj akceleratory
 	HACCEL hAccel = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_AKCELERATOR_CZASTECZEK));
 	if (hAccel == NULL) AWARIA(TEXT("akcelerator"));
 
@@ -90,16 +92,15 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			if (atom == 0) {
 				WNDCLASSEX* pwc = reinterpret_cast<WNDCLASSEX*>(GetWindowLongPtr(hwnd, 0));
 				pwc->lpfnWndProc = TreeWndProc;
-				pwc->cbWndExtra = 0;
+				pwc->cbClsExtra = sizeof(HWND);
 			 	pwc->style = CS_HREDRAW | CS_VREDRAW;
 				pwc->lpszClassName = TEXT("Tree");
 				pwc->lpszMenuName = NULL;
 				atom = RegisterClassEx(pwc);
 			}
 
-			HWND childHwnd = CreateWindowEx(0, reinterpret_cast<LPCWSTR>(atom), TEXT("Kodowanie Huffmana"), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 480,
+			HWND childHwnd = CreateWindowEx(NULL, reinterpret_cast<LPCWSTR>(atom), TEXT("Kodowanie Huffmana"), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 480,
 				hwnd, NULL, NULL, NULL);
-
 			UpdateWindow(childHwnd);
 			ShowWindow(childHwnd, 1);
 
@@ -108,7 +109,6 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 			}
-
 			break;
 		}
 		case IDM_W_A_CIWO_CI_GRAFIKI___1: {
@@ -188,6 +188,7 @@ INT_PTR DefDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	return TRUE;
 }
 
+HWND GetGrandParent(HWND hwnd) { return GetParent(GetParent(hwnd)); }
 
 [[noreturn]] void AWARIA(LPCWSTR lpszFunc)
 {

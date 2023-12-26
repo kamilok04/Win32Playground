@@ -11,6 +11,8 @@
 #define IDR_AKCELERATOR_CZASTECZEK              114
 #define IDR_TOOLBAR1                            115
 #define IDD_TREE_SETTINGS                       117
+#define IDI_TRANSPIVO                           119
+#define IDI_PIVO_256                            121
 #define IDR_TRIG_SPEEDRUN                       30000
 #define IDR_HELP_SPEEDRUN                       30001
 #define IDC_RADIO_FREQ                          40000
