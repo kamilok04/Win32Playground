@@ -16,9 +16,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Drzewko.cpp">
+    <ClCompile Include="Tree.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
     <ClCompile Include="GraphicsDemo.cpp">
@@ -35,7 +36,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Drzewko.h">
+    <ClInclude Include="Tree.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
     <ClInclude Include="GraphicsDemo.h">
@@ -55,7 +56,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="GorszeWin32OOP.rc">
+    <ResourceCompile Include="Resources.rc">
       <Filter>Pliki zasobów</Filter>
     </ResourceCompile>
   </ItemGroup>

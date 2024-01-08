@@ -1,4 +1,4 @@
-#include "Drzewko.h"
+#include "Tree.h"
 
 LRESULT CALLBACK TreeWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {						// funkcja okna z drzewkiem
 	static HWND ustawienia = NULL;
@@ -299,19 +299,27 @@ LRESULT CALLBACK AuxiliaryEditProc(INT code, WPARAM wParam, LPARAM lParam) {
 				switch (lvthi.iSubItem) {
 				case static_cast<INT>(COLUMNS::ID): {
 					const TCHAR* psCompareString = COMPARE_STRING_INT;
-					if (VerifyAndProcessInput<INT>(target, psBuffer, lvthi, 20, psCompareString))bUpdateTree = TRUE;
+					if (VerifyAndProcessInput<INT>(target, psBuffer, lvthi, 20, psCompareString)) {
+
+						bUpdateTree = TRUE;
+					}
 					break;
 				}
 				case static_cast<INT>(COLUMNS::SYMBOL): {
 					const TCHAR* psCompareString = COMPARE_STRING_STRING;
-					if(VerifyAndProcessInput<PTCHAR>(target, psBuffer, lvthi, 20, psCompareString))bUpdateTree = TRUE;
+					if (VerifyAndProcessInput<PTCHAR>(target, psBuffer, lvthi, 20, psCompareString)) {
+						bUpdateTree = TRUE;
+					}
 					break;
 				}
 				default: {
 					const TCHAR* psCompareString = COMPARE_STRING_DOUBLE;
-					if(VerifyAndProcessInput<DOUBLE>(target, psBuffer, lvthi, 20, psCompareString))bUpdateTree = TRUE;
+					if (VerifyAndProcessInput<DOUBLE>(target, psBuffer, lvthi, 20, psCompareString)) {
+						bUpdateTree = TRUE;
+					}
 					break;
 				}
+
 				}
 				DestroyWindow(target);
 			}

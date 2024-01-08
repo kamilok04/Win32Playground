@@ -133,17 +133,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="ClassDiagram.cd" />
     <None Include="cpp.hint" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Drzewko.cpp" />
+    <ClCompile Include="Tree.cpp" />
     <ClCompile Include="DWrite.cpp" />
     <ClCompile Include="GraphicsDemo.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Trigonometry.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Drzewko.h" />
+    <ClInclude Include="Tree.h" />
     <ClInclude Include="DWrite.h" />
     <ClInclude Include="GraphicsDemo.h" />
     <ClInclude Include="main.h" />
@@ -151,7 +152,7 @@
     <ClInclude Include="Trigonometry.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="GorszeWin32OOP.rc" />
+    <ResourceCompile Include="Resources.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
