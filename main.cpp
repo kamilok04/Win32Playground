@@ -1,9 +1,25 @@
+/* TODO
+	- dorobiæ adnotacje SAL
+
+
+
+*/
+
 #include "main.h"
 
+// i do przodu!
+/**
+ * g³ówna funkcja programu
+ * 
+ * \param hInstance
+ * \param hPrevInstance
+ * \param lpCmdLine
+ * \param iCmdShow
+ * \return kod wyjœcia (0 przy sukcesie, coœ innego przy pora¿ce)
+ */
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int iCmdShow) {
 
 	// utwórz g³ówne okno programu
-	 
 	WNDCLASSEX wc = {};
 	wc.cbSize = sizeof(WNDCLASSEX);
 	wc.lpfnWndProc = MainWndProc;
@@ -16,17 +32,21 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	wc.lpszMenuName = MAKEINTRESOURCE(IDR_MAIN_MENU);
 	wc.lpszClassName = TEXT("CPPDemo");
 
-	ATOM atom = RegisterClassEx(&wc); // zapisz identyfikator klasy (nazwa te¿ jest poprawnym identyfikatorem)
+	// zapisz identyfikator klasy (nazwa te¿ jest poprawnym identyfikatorem, kwestia gustu)
+	ATOM aAtom = RegisterClassEx(&wc);
+
+#if defined DEBUG
+	LPCWSTR lpszTitle = TEXT("Aplikacja (DEBUG)");
+#else
+	LPCWSTR lpszTitle = TEXT("Aplikacja");
+#endif
 	// w³asciwoœci okna:
-	// - przerysuj je przy jakiejkolwiek zmianie
+	// - przerysuj je przy zmianie rozmiaru w pionie
+	// - przerysuj je przy zmianie rozmiaru w poziomie
 	// - widoczne od razu po utworzeniu
 	// - ma krawêdzie, pasek tytu³u, mo¿e wyœwietlaæ menu i ma dobrze zdefiniowane zachowania domyœlne
-#if defined DEBUG
-		LPCWSTR title = TEXT("Aplikacja (DEBUG)");
-#else
-		LPCWSTR title = TEXT("Aplikacja");
-#endif
-	HWND hwnd = CreateWindowEx(0, reinterpret_cast<LPCTSTR>(atom), title, CS_HREDRAW | CS_VREDRAW | WS_VISIBLE | WS_OVERLAPPEDWINDOW,
+	HWND hwnd = CreateWindowEx(0, reinterpret_cast<LPCTSTR>(aAtom), lpszTitle,
+		CS_HREDRAW | CS_VREDRAW | WS_VISIBLE | WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
@@ -39,14 +59,26 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		AWARIA(TEXT("Tworzenie g³ównego okna"));
 	}
 
-
-	SetWindowLongPtr(hwnd, 0, reinterpret_cast<LONG_PTR>(& wc));
+	// zapisz referencjê do klasy w danych okna, "na marginesie"
+	// bêdzie wykorzystywana ponownie
+	// Win32: u¿ywanie GWLP_USERDATA jest mo¿liwe, ale traktowane jako antypraktyka
+	// GWLP_USERDATA jest przeznaczone dla u¿ytkowników kodu, nie autorów
+	SetWindowLongPtr(hwnd, 0, reinterpret_cast<LONG_PTR>(&wc));
 
 	// wczytaj akceleratory
 	HACCEL hAccel = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_AKCELERATOR_CZASTECZEK));
 	if (hAccel == NULL) AWARIA(TEXT("akcelerator"));
 
 	UpdateWindow(hwnd);
+
+	// tu jest miejsce na ostatnie rzeczy do zainicjalizowania
+	// przed uruchomieniem widocznej czêœci programu
+
+	// w³¹cz co bardziej zaawansowane, ale nadal standardowe, kontrolki
+	INITCOMMONCONTROLSEX iccex = {};
+	iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+	iccex.dwICC = ICC_BAR_CLASSES | ICC_TAB_CLASSES; // paski narzêdzi, statusu, suwaki, wskazówki
+	if(!InitCommonControlsEx(&iccex)) AWARIA(TEXT("nie ma kontrolek!"));
 
 	MSG msg;
 	while (GetMessage(&msg, hwnd, 0, 0) > 0) {
@@ -59,13 +91,23 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 
 }
 
-
+/**
+ * Funkcja do obs³ugi g³ównego okna programu
+ * 
+ * \param hwnd
+ * \param uMsg
+ * \param wParam
+ * \param lParam
+ * \return 
+ */
 LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	HDC hdc = nullptr;
 	static PAINTSTRUCT ps{};
 	static RECT rect{};
 	switch (uMsg) {
 	case WM_CREATE:
+		// zdob¹dŸ informacje o systemowej czcionce
+		// domyœlnie: Marlett, 8pt
 		hdc = GetDC(hwnd);
 		TEXTMETRIC tm;
 		GetTextMetrics(hdc, &tm);
@@ -82,7 +124,11 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		switch (LOWORD(wParam)) {
 		case IDM_O_PROGRAMIE____TF1:
 		case IDR_HELP_SPEEDRUN: {
+#ifdef _WIN64
 			DialogBox(NULL, MAKEINTRESOURCE(IDD_O_PROGRAMIE), hwnd, DefDialogProc);
+#else
+			DialogBox(NULL, MAKEINTRESOURCE(IDD_O_PROGRAMIE), hwnd, (DLGPROC) DefDialogProc);
+#endif
 			break;
 		}
 		case IDM_DRZEWKO___1:
@@ -93,13 +139,13 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				WNDCLASSEX* pwc = reinterpret_cast<WNDCLASSEX*>(GetWindowLongPtr(hwnd, 0));
 				pwc->lpfnWndProc = TreeWndProc;
 				pwc->cbClsExtra = sizeof(HWND);
-			 	pwc->style = CS_HREDRAW | CS_VREDRAW;
+			 	pwc->style =  CS_HREDRAW | CS_VREDRAW;
 				pwc->lpszClassName = TEXT("Tree");
 				pwc->lpszMenuName = NULL;
 				atom = RegisterClassEx(pwc);
 			}
 
-			HWND childHwnd = CreateWindowEx(NULL, reinterpret_cast<LPCWSTR>(atom), TEXT("Kodowanie Huffmana"), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 480,
+			HWND childHwnd = CreateWindowEx(NULL, reinterpret_cast<LPCWSTR>(atom), TEXT("Kodowanie Huffmana"), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 1024, 768,
 				hwnd, NULL, NULL, NULL);
 			UpdateWindow(childHwnd);
 			ShowWindow(childHwnd, 1);
@@ -190,10 +236,11 @@ INT_PTR DefDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 HWND GetGrandParent(HWND hwnd) { return GetParent(GetParent(hwnd)); }
 
+
 [[noreturn]] void AWARIA(LPCWSTR lpszFunc)
 {
-	LPVOID lpMsgBuf;
-	LPVOID lpDisplayBuf;
+	LPVOID lpMsgBuf = nullptr;
+	LPVOID lpDisplayBuf = nullptr;
 	DWORD kod = GetLastError();
 	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
 		FORMAT_MESSAGE_FROM_SYSTEM |

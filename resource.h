@@ -13,6 +13,7 @@
 #define IDD_TREE_SETTINGS                       117
 #define IDI_TRANSPIVO                           119
 #define IDI_PIVO_256                            121
+#define IDI_WARN                                125
 #define IDR_TRIG_SPEEDRUN                       30000
 #define IDR_HELP_SPEEDRUN                       30001
 #define IDC_RADIO_FREQ                          40000
@@ -21,6 +22,7 @@
 #define IDR_TREE_SPEEDRUN                       40000
 #define IDS_SINE                                40000
 #define IDC_TRIG_RANGE_FROM                     40001
+#define IDC_WARN_PLACEHOLDER                    40001
 #define IDM_W_A_CIWO_CI_GRAFIKI___1             40001
 #define IDS_COSINE                              40001
 #define IDC_RADIO_PROB                          40002
@@ -30,6 +32,7 @@
 #define IDC_TREE_LEAVES                         40003
 #define IDC_TRIG_FUNCTION_SELECT                40003
 #define IDS_COTANGENT                           40003
+#define IDC_BUTTON1                             40004
 #define IDC_PIVO                                40004
 #define IDM__POKAZ_TRYGONOMETRII___1            40004
 #define IDS_ORDER                               40004
@@ -41,7 +44,11 @@
 #define IDM_NIC3                                40007
 #define IDS_FREQ_VALUE                          40007
 #define IDM_TANGENS1                            40008
+#define IDS_TREE_ID_ERROR                       40008
 #define IDM_COTANGENS1                          40009
+#define IDS_TREE_SYMBOL_ERROR                   40009
+#define IDS_TREE_PROB_SUM_ERROR                 40010
 #define IDM_NIC1                                40011
+#define IDS_TREE_PROB_VALUE_ERROR               40011
 #define IDM_NIC2                                40012
 #define IDM_DRZEWKO___1                         40013

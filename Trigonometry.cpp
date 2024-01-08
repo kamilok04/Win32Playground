@@ -15,11 +15,11 @@ static struct TrigData TrigFunctions[4] = {
 };
 
 // wstêpne parametry rysowania
-static HPEN kolory[TRIG_ID::TRIG_ID_MAX] = {
-	CreatePen(PS_SOLID, 3, CZERWONY),
-	CreatePen(PS_SOLID, 3, ZIELONY),
-	CreatePen(PS_SOLID, 3, NIEBIESKI),
-	CreatePen(PS_SOLID, 3, ZOLTY)
+static HPEN hpColors[TRIG_ID::TRIG_ID_MAX] = {
+	CreatePen(PS_SOLID, 3, RED),
+	CreatePen(PS_SOLID, 3, GREEN),
+	CreatePen(PS_SOLID, 3, BLUE),
+	CreatePen(PS_SOLID, 3, YELLOW)
 };
 
 LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -27,8 +27,8 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 	static int cyClient = 0;
 
 	PAINTSTRUCT ps{};
-	std::vector<POINT> punkty(num);
-	punkty.reserve(MAX_POINTS);
+	std::vector<POINT> vPoints(num);
+	vPoints.reserve(MAX_POINTS);
 	HDC hdc = NULL;
 	switch (uMsg) {
 	case WM_SIZE: {
@@ -44,37 +44,37 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 		MoveToEx(hdc, cxClient, cyClient / 2, NULL);
 		LineTo(hdc, 0, cyClient / 2);
 
-		SAMOCHÓD oldPen = SelectObject(hdc, GetStockObject(DC_PEN));	// zapisz stare pióro
+		AUTO hpOldPen = SelectObject(hdc, GetStockObject(DC_PEN));	// zapisz stare pióro
 
 		for (INT iFunc = SINE; iFunc < TRIG_ID::TRIG_ID_MAX; iFunc++) {
 
 			MoveToEx(hdc, 0, cyClient / 2, NULL);
 			TrigData currentFunction = TrigFunctions[iFunc];
 			if (currentFunction.drawn) {
-				DWORD liczbaPunktow = PRECISION_TO_POINTS(currentFunction.precision);
+				DWORD cPoints = PRECISION_TO_POINTS(currentFunction.precision);
 				// dynamicznie alokowany wektor - potrzebny?
-				if (punkty.size() != (liczbaPunktow+1))
-					punkty.resize(liczbaPunktow+1);
-				SelectObject(hdc, kolory[iFunc]);		// weŸ nowe pióro
-				for (size_t i = 0; i <=  liczbaPunktow ; i++) {
-					punkty[i].x = static_cast<LONG>((cxClient * i) / liczbaPunktow);
-					long double yDraft = (i * (currentFunction.to - currentFunction.from) / liczbaPunktow);
-					long double sine = sin(yDraft);
-					long double cosine = cos(yDraft);
+				if (vPoints.size() != cPoints+1)
+					vPoints.resize(cPoints+1);
+				SelectObject(hdc, hpColors[iFunc]);		// weŸ nowe pióro
+				for (size_t i = 0; i <=  cPoints ; i++) {
+					vPoints[i].x = static_cast<LONG>((cxClient * i) / cPoints);
+					long double ldYDraft = (i * (currentFunction.to - currentFunction.from) / cPoints);
+					long double ldSine = sin(ldYDraft);
+					long double ldCosine = cos(ldYDraft);
 					switch (iFunc) {
-					case SINE: punkty[i].y = static_cast<LONG>(cyClient * (sine + 1) / 2); break;
-					case COSINE: punkty[i].y = static_cast<LONG>(cyClient * (cosine + 1) / 2); break;
+					case SINE: vPoints[i].y = static_cast<LONG>(cyClient * (ldSine + 1) / 2); break;
+					case COSINE: vPoints[i].y = static_cast<LONG>(cyClient * (ldCosine + 1) / 2); break;
 					// TODO: naprawiæ-------
-					case TANGENT: if (cosine < 0.01) { punkty[i].y = (sine * cosine > 0) ? 0 : cyClient; continue; } punkty[i].y = static_cast<LONG>(cyClient * (1 + sine / cosine) / 2); break;
-					case COTANGENT: if (sine < 0.01) { punkty[i].y = (sine * cosine < 0) ? 0 : cyClient; continue; } punkty[i].y = static_cast<LONG>(cyClient * (1 + cosine / sine) / 2); break;
+					case TANGENT: if (ldCosine < 0.01) { vPoints[i].y = (ldSine * ldCosine > 0) ? 0 : cyClient; continue; } vPoints[i].y = static_cast<LONG>(cyClient * (1 + ldSine / ldCosine) / 2); break;
+					case COTANGENT: if (ldSine < 0.01) { vPoints[i].y = (ldSine * ldCosine < 0) ? 0 : cyClient; continue; } vPoints[i].y = static_cast<LONG>(cyClient * (1 + ldCosine / ldSine) / 2); break;
 					// ---------
 					}
 				}
 				// rysuj!
-				PolylineTo(hdc, punkty.data(), liczbaPunktow+1);
+				PolylineTo(hdc, vPoints.data(), cPoints+1);
 			}
 		}
-		SelectObject(hdc, oldPen); // przywróæ stare pióro
+		SelectObject(hdc, hpOldPen); // przywróæ stare pióro
 		return 0;
 	}
 	case WM_COMMAND: {
@@ -84,7 +84,11 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 			break;
 		}
 			case IDM_NIC1: {
+#ifdef _WIN64
 				DialogBox(NULL, MAKEINTRESOURCE(IDD_TRIG), hwnd, TrigDialogProc);
+#else 
+				DialogBox(NULL, MAKEINTRESOURCE(IDD_TRIG), hwnd, (DLGPROC) TrigDialogProc);
+#endif
 				break;
 			}
 		}
@@ -92,7 +96,7 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 
 
 	case WM_DESTROY: {
-		FreeResource(kolory);
+		FreeResource(hpColors);
 		return 0;
 	}
 	default: break;
@@ -102,74 +106,73 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 
 
 INT_PTR TrigDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-	UNREFERENCED_PARAMETER(lParam); // usuñ ostrze¿enie
 	// inicjalizacja wartoœci
-	HWND lista;
-	static const HWND suwak = GetDlgItem(hwnd, IDC_TRIG_PRECISION);
-	static HWND zegar;
-	LRESULT dlg;
-	HFONT czcionka;
+	HWND hList;
+	static const HWND hTrackbar = GetDlgItem(hwnd, IDC_TRIG_PRECISION);
+	static HWND hIndicator;
+	LRESULT lDlg;
+	HFONT hFont;
 	static HBITMAP hImage;
-	static DWORD pos;
+	static DWORD dPos;
 	switch (uMsg)
 	{
 	case WM_INITDIALOG:
-		lista = GetDlgItem(hwnd, IDC_TRIG_FUNCTION_SELECT);
-		InitTrigList(lista);
+		hList = GetDlgItem(hwnd, IDC_TRIG_FUNCTION_SELECT);
+		InitTrigList(hList);
 		// bitmapa w okienku!
 		// TODO: wkleiæ coœ innego ni¿ piwo
 		hImage = reinterpret_cast<HBITMAP>(LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_PIVO), IMAGE_BITMAP, 0, 0, NULL));
 		if (hImage == NULL) AWARIA(TEXT("piwko"));
-		dlg = SendDlgItemMessage(hwnd, IDC_PIVO, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM) hImage);
-		zegar = GetDlgItem(hwnd, IDC_TRIG_INDICATOR);
+		lDlg = SendDlgItemMessage(hwnd, IDC_PIVO, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM) hImage);
+		hIndicator = GetDlgItem(hwnd, IDC_TRIG_INDICATOR);
 		// na³ó¿ efekty zpecjalne na czionkê
-		czcionka =  CreateFont(30, 70, 100, 100, FW_DONTCARE, TRUE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, NONANTIALIASED_QUALITY, FF_DONTCARE, TEXT("Consolas"));
-		if (czcionka == NULL) AWARIA(TEXT("czcionka"));
+		hFont =  CreateFont(30, 70, 100, 100, FW_DONTCARE, TRUE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, NONANTIALIASED_QUALITY, FF_DONTCARE, TEXT("Consolas"));
+		if (hFont == NULL) AWARIA(TEXT("hFont"));
 		// zaaplikuj te efekty
-		SendMessage(zegar, WM_SETFONT, (WPARAM) czcionka, FALSE );
+		SendMessage(hIndicator, WM_SETFONT, reinterpret_cast<WPARAM>(hFont), FALSE );
 		// wstêpna wartoœæ
-		SetWindowText(zegar, TEXT("0"));
+		SetWindowText(hIndicator, TEXT("0"));
 		return TRUE;
 	case WM_CTLCOLORSTATIC:
 		// kod do aplikowania zmian czcionki 
-		HBRUSH brush;
-		HWND TrigHWND;
-		TrigHWND = (HWND)lParam;
-		if (TrigHWND == GetDlgItem(hwnd, IDC_TRIG_PRECISION))
+		HBRUSH hBrush;
+		HWND hTrig;
+		hTrig = reinterpret_cast<HWND>(lParam);
+		if (hTrig == GetDlgItem(hwnd, IDC_TRIG_PRECISION))
 		{
-			SetBkMode((HDC)(wParam), TRANSPARENT);
-			brush = GetSysColorBrush(COLOR_MENU);
-			return (INT_PTR)brush;
+			SetBkMode(reinterpret_cast<HDC>(wParam), TRANSPARENT);
+			hBrush = GetSysColorBrush(COLOR_MENU);
+			return reinterpret_cast<INT_PTR>(hBrush);
 		}
-		if (TrigHWND == GetDlgItem(hwnd, IDC_TRIG_INDICATOR))
+		if (hTrig == GetDlgItem(hwnd, IDC_TRIG_INDICATOR))
 		{
-			SetBkMode((HDC)(wParam), TRANSPARENT);
-			brush = GetSysColorBrush(COLOR_MENU);
-			SetTextColor((HDC)(wParam), CZERWONY);
-			return (INT_PTR) brush;
+			SetBkMode(reinterpret_cast<HDC>(wParam), TRANSPARENT);
+			hBrush = GetSysColorBrush(COLOR_MENU);
+			SetTextColor(reinterpret_cast<HDC>(wParam), RED);
+			return (INT_PTR) (hBrush);
 		}
 		return FALSE;
 	case WM_HSCROLL: // pasek
-		pos = static_cast<DWORD>(SendDlgItemMessage(hwnd, IDC_TRIG_PRECISION, TBM_GETPOS, 0, 0));
+		dPos = static_cast<DWORD>(SendDlgItemMessage(hwnd, IDC_TRIG_PRECISION, TBM_GETPOS, 0, 0));
 		TCHAR posStr[10];
-		_itow_s(pos, posStr, 10);
+		_itow_s(dPos, posStr, 10);
 		posStr[9] = 0;
-		SetWindowText(zegar, posStr);
+		SetWindowText(hIndicator, posStr);
 		return TRUE;
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
 		case IDOK:
 			// odczytaj wartoœci
-			TCHAR bufor[20];
-			TCHAR bufor2[20];
-			TCHAR bufor3[20];
-			GetDlgItemText(hwnd, IDC_TRIG_FUNCTION_SELECT, bufor, 20);
-			GetDlgItemText(hwnd, IDC_TRIG_RANGE_FROM, bufor2, 20);
-			GetDlgItemText(hwnd, IDC_TRIG_RANGE_TO, bufor3, 20);
-			TCHAR str[200];
-			StringCchPrintf(str, 200, TEXT("Funkcja: %s\r\nZakres od: %s\r\nZakres do: %s\r\nPrecyzja: %d\r\n"), bufor, bufor2, bufor3, pos);
-			MessageBox(hwnd, str, TEXT("wiedza tajemna"), MB_ICONINFORMATION | MB_OK);
+			TCHAR lpszBufor[20];
+			TCHAR lpszBufor2[20];
+			TCHAR lpszBufor3[20];
+			GetDlgItemText(hwnd, IDC_TRIG_FUNCTION_SELECT, lpszBufor, 20);
+			GetDlgItemText(hwnd, IDC_TRIG_RANGE_FROM, lpszBufor2, 20);
+			GetDlgItemText(hwnd, IDC_TRIG_RANGE_TO, lpszBufor3, 20);
+			TCHAR lpszAggregate[200];
+			StringCchPrintf(lpszAggregate, 200, TEXT("Funkcja: %s\r\nZakres od: %s\r\nZakres do: %s\r\nPrecyzja: %d\r\n"), lpszBufor, lpszBufor2, lpszBufor3, dPos);
+			MessageBox(hwnd, lpszAggregate, TEXT("wiedza tajemna"), MB_ICONINFORMATION | MB_OK);
 			EndDialog(hwnd, IDOK);
 
 			// TODO: zastosowaæ te wartoœci

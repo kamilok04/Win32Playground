@@ -5,8 +5,8 @@
 LRESULT CALLBACK GraphicsDemoWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	static int cxChar, cyChar, cxCaps, cxClient, cyClient, iMaxWidth;
 	int i, x, y, iVertPos, iHorzPos, iPaintBeg, iPaintEnd;
-	SCROLLINFO si;
-	TCHAR szBuffer[10];
+	SCROLLINFO si = {};
+	TCHAR szBuffer[10] = {};
 	TEXTMETRIC tm;
 	HDC hdc;
 	PAINTSTRUCT ps;
