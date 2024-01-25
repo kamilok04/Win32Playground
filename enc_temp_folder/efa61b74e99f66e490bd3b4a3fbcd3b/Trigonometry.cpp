@@ -323,8 +323,7 @@ DWORD WINAPI DrawTrig() {
 VOID AnimateTrig(){
 	while (1) {
 		HDC hdc = GetDC(dpp.hwnd);
-		HBITMAP hBm = CaptureScreenPart(hdc,dpp.ClientRect.right- 10, 0, 4,
-			dpp.ClientRect.bottom - dpp.ClientRect.top);
+		HBITMAP hBm = CaptureScreenPart(hdc,dpp.ClientRect.right- 10, 0, 4, dpp.ClientRect.bottom - dpp.ClientRect.top);
 		ScrollWindowEx(dpp.hwnd, 1, 0, NULL, NULL, NULL, NULL, SW_INVALIDATE);
 		DrawScreenPart(hdc, 0, 0, hBm);
 		DeleteObject(hBm);

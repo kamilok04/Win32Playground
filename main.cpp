@@ -38,6 +38,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 #if defined DEBUG
 	LPCWSTR lpszTitle = TEXT("Aplikacja (DEBUG)");
 #else
+	// wy³¹cz wype³nianie bufora znakami debugowania
+	_CrtSetDebugFillThreshold(NULL);
 	LPCWSTR lpszTitle = TEXT("Aplikacja");
 #endif
 	// w³asciwoœci okna:
@@ -191,12 +193,14 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				pwc->lpfnWndProc = TrigonometryWndProc;
 				pwc->cbWndExtra = 0;
 				pwc->style = CS_HREDRAW | CS_VREDRAW;
+				//pwc->style = NULL;
 				pwc->lpszClassName = TEXT("TrigDemo");
 				pwc->lpszMenuName = MAKEINTRESOURCE(IDR_TRIG);
+			
 				atom = RegisterClassEx(pwc);;
 			}
 			HWND childHwnd = CreateWindowEx(0, reinterpret_cast<LPCWSTR>(atom), TEXT("Pokaz rysowania trygonometrii"),
-				WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 1200, 480,
+				WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 1200, 800,
 				hwnd, NULL, NULL, NULL);
 			UpdateWindow(childHwnd);
 			ShowWindow(childHwnd, 1);
@@ -234,7 +238,59 @@ INT_PTR DefDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	return TRUE;
 }
 
+
+/**
+ * Bardzo krótka funkcja - zwróæ uchwyt dziadka na podstawie uchwytu wnuka.
+ * 
+ * \param hwnd - uchwyt do wnuka
+ * \return 
+ */
 HWND GetGrandParent(HWND hwnd) { return GetParent(GetParent(hwnd)); }
+
+
+/**
+ * Funkcja do przechwytywania kawa³ka ekranu.
+ * 
+ * \param hdc	- kontekst urz¹dzenia
+ * \param x		- wspó³rzêdna x lewego górnego rogu
+ * \param y		- wspó³rzêdna y lewego górnego rogu
+ * \param cX	- szerokoœæ przechwytywanego obszaru
+ * \param cY	- wysokoœæ przechwytywanego obszaru
+ * \return		- uchwyt do bitmapy, jeœli siê uda³o
+ */
+
+HBITMAP CaptureScreenPart(HDC hdc, INT x, INT y, INT cX, INT cY) {
+	HDC hdcMem = CreateCompatibleDC(hdc);
+	INT capX = GetDeviceCaps(hdc, HORZRES);
+	INT capY = GetDeviceCaps(hdc, VERTRES);
+	HBITMAP hbmMem = CreateCompatibleBitmap(hdc, cX, cY);
+	HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmMem);
+	BitBlt(hdcMem, 0, 0, cX, cY, hdc, x, y, SRCCOPY);
+	hbmMem = (HBITMAP)SelectObject(hdcMem, hbmOld);
+	DeleteDC(hdcMem);
+	return hbmMem;
+	
+}
+
+/**
+ * DrawScreenPart - rysuje czêœæ ekranu (lub dowoln¹ inn¹ bitmapê, na dobr¹ sprawê).
+ * Zaleca siê u¿ywanie tej funkcji w zestawie z CaptureScreenPart.
+ * 
+ * \param hdc - uchwyt do kontekstu urz¹dzenia
+ * \param x - wspó³rzêdna x lewego górnego rogu
+ * \param y - wspó³rzêdna y lewego górnego rogu
+ * \param hBitmap - uchwyt do bitmapy do narysowania
+ * \return - czy siê uda³o
+ */
+BOOL DrawScreenPart(HDC hdc, INT x, INT y, HBITMAP hBitmap) {
+	BITMAP bmp;
+	HDC hdcMem = CreateCompatibleDC(hdc);
+	GetObject(hBitmap, sizeof(BITMAP), &bmp);
+	SelectObject(hdcMem, hBitmap);
+	BOOL bResult = BitBlt(hdc, x, y, bmp.bmWidth, bmp.bmHeight, hdcMem, 0, 0, SRCCOPY);
+	DeleteDC(hdcMem);
+	return bResult;
+}
 
 
 [[noreturn]] void AWARIA(LPCWSTR lpszFunc)
@@ -265,3 +321,4 @@ HWND GetGrandParent(HWND hwnd) { return GetParent(GetParent(hwnd)); }
 	LocalFree(lpDisplayBuf);
 	ExitProcess(kod);
 }
+

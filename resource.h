@@ -36,6 +36,7 @@
 #define IDC_PIVO                                40004
 #define IDM__POKAZ_TRYGONOMETRII___1            40004
 #define IDS_ORDER                               40004
+#define IDC_RADIO1                              40005
 #define IDC_TRIG_RANGE_TO                       40005
 #define IDM_SINUS1                              40005
 #define IDS_SYMBOL                              40005

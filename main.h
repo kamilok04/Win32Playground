@@ -1,5 +1,5 @@
 ﻿// <windows.h> musi być wezwane przed każdą inną biblioteką systemu
-#include <windows.h>
+#include <Windows.h>
 #include "resource.h"
 #include <CommCtrl.h>
 #include <strsafe.h>
@@ -12,16 +12,18 @@
 #include <set>
 #include <vector>
 #include <algorithm>
+#include <string>
 
 // mimo #include parę plików nie chciało się automatycznie wczytać
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "comctl32.lib")
 
 // odkomentuj w celu dodatkowej funkcjonalności
+// (chyba) 
 // #define DEBUG
 
 // wyrzuć najstarszą funkcjonalność; zabiera miejsce, a jest nieużywana
-// #define WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
 
 // wiele typów już jest pisane W_TAKI_SPOSÓB, więc te też mogą
 // w dodatku Windows używa notacji węgierskiej (np. char lpszTekst[20] = {})
@@ -38,6 +40,11 @@
 #define TYPENAME typename
 #define TYPEDEF typedef
 #define UNION union
+#define cot(x) (1 / tan(x))
+
+// :)
+#define SAMOCHÓD AUTO
+#define OOLONG ULONG    // są tu koneserzy herbaty?
 
 // do debugowania
 #define TESTMSG MessageBox(NULL, TEXT("Wiadomość testowa: kontynuuj"), TEXT("test"), MB_OK | MB_ICONINFORMATION);
@@ -62,6 +69,8 @@ ATOM ZarejestrujKlase(WNDCLASSEX*);
 
 // Funkcje używane w więcej niż jednym pliku
 HWND GetGrandParent(HWND); 
+HBITMAP CaptureScreenPart(HDC, INT x, INT y, INT cX, INT cY);
+BOOL DrawScreenPart(HDC, INT x, INT y, HBITMAP);
 
 // szablony użytkowe
 // ============================================================

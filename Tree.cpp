@@ -34,6 +34,7 @@ LRESULT CALLBACK TreeWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 STATIC LVHITTESTINFO lvthi = {};
 BOOL bUpdateTree = TRUE;
+LEAF_VECTOR vTree;
 
 // ---------------------------
 
@@ -44,7 +45,6 @@ INT_PTR TreeDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	// - weryfikacja przysz³ych wejœæ
 	// - jak lista siê zachowuje w ró¿nych DPI/rodzielczoœciach?
 	// - informuj o Ÿle znormalizowanym prawdopodobieñstwie
-
 	LEAF_VECTOR vTree(DefaultTreeValues, DefaultTreeValues + cDefaultValues);
 	switch (uMsg) {
 	case WM_INITDIALOG: {
@@ -80,17 +80,18 @@ INT_PTR TreeDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					switch (lvthi.iSubItem) {
 					case static_cast<INT>(COLUMNS::ID): {
 						const TCHAR* psCompareString = COMPARE_STRING_INT;
-						VerifyAndProcessInput<INT>(hTmpEdit, psBuffer, lvthi, 20, psCompareString);
+						VerifyAndProcessInput<INT>(hTmpEdit, psBuffer, lvthi, vTree, 20, psCompareString);
+						
 						break;
 					}
 					case static_cast<INT>(COLUMNS::SYMBOL): {
 						const TCHAR* psCompareString = COMPARE_STRING_STRING;
-						VerifyAndProcessInput<PTCHAR>(hTmpEdit, psBuffer, lvthi, 20, psCompareString);
+						VerifyAndProcessInput<PTCHAR>(hTmpEdit, psBuffer, lvthi, vTree, 20, psCompareString);
 						break;
 					}
 					default: {
 						const TCHAR* psCompareString = COMPARE_STRING_DOUBLE;
-						VerifyAndProcessInput<DOUBLE>(hTmpEdit, psBuffer, lvthi, 20, psCompareString);
+						VerifyAndProcessInput<DOUBLE>(hTmpEdit, psBuffer, lvthi, vTree, 20, psCompareString);
 						break;
 					}
 					}
@@ -199,6 +200,7 @@ INT_PTR TreeDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			// dialog ma zostaæ!
 			// tu bêdzie wywo³ywane drzewo
 			HWND hList = GetDlgItem(hwnd, IDC_TREE_LEAVES);
+			vTree = CreateTreeFromList(hList);
 			GenerateTree(vTree, GetParent(hwnd), static_cast<UINT>(SendDlgItemMessage(hwnd, IDC_TREE_LEAVES, LVM_GETITEMCOUNT, NULL, NULL)));
 			return 0;
 		}
@@ -252,10 +254,10 @@ static BOOL InsertListItem(HWND hList, struct LEAF& LEAF) {
 	// rzuca siê w oczy
 	if (ListView_InsertItem(hList, &lvI) == ERROR_UNHANDLED_ERROR) return FALSE;
 	lvI.iSubItem = static_cast<INT>(COLUMNS::SYMBOL);
-	lvI.pszText = LEAF.tSymbol;
+	lvI.pszText = (LPWSTR) LEAF.tSymbol.c_str();
 	if (ListView_SetItem(hList, &lvI) == ERROR_UNHANDLED_ERROR) return FALSE;
 	lvI.iSubItem = static_cast<INT>(COLUMNS::VALUE);
-	lvI.pszText = LEAF.tFPValue;
+	lvI.pszText = (LPWSTR) LEAF.tFPValue.c_str();
 	if (ListView_SetItem(hList, &lvI) == ERROR_UNHANDLED_ERROR) return FALSE;
 	return TRUE;
 }
@@ -265,6 +267,7 @@ VOID GenerateTree(LEAF_VECTOR& vLeaves, HWND hwnd, UINT cLeaves) {
 	// TODO
 	// zaimplementowaæ algorytm opisany wy¿ej
 	// i narysowaæ to drzewko
+
 	STATIC LEAF lOptimizedTree;
 	if(bUpdateTree) lOptimizedTree = PrepareTree(vLeaves);
 
@@ -272,6 +275,7 @@ VOID GenerateTree(LEAF_VECTOR& vLeaves, HWND hwnd, UINT cLeaves) {
 	// okno-dziecko jest potrzebne w razie przewijania ekranu
 
 	TREEPROPERTIES tp = CreateTreeProperties(lOptimizedTree, cLeaves, hwnd);
+
 
 	DrawTree(lOptimizedTree, hwnd, tp);
 
@@ -299,22 +303,22 @@ LRESULT CALLBACK AuxiliaryEditProc(INT code, WPARAM wParam, LPARAM lParam) {
 				switch (lvthi.iSubItem) {
 				case static_cast<INT>(COLUMNS::ID): {
 					const TCHAR* psCompareString = COMPARE_STRING_INT;
-					if (VerifyAndProcessInput<INT>(target, psBuffer, lvthi, 20, psCompareString)) {
-
+					if (VerifyAndProcessInput<INT>(target, psBuffer, lvthi, vTree, 20, psCompareString)) {
+						
 						bUpdateTree = TRUE;
 					}
 					break;
 				}
 				case static_cast<INT>(COLUMNS::SYMBOL): {
 					const TCHAR* psCompareString = COMPARE_STRING_STRING;
-					if (VerifyAndProcessInput<PTCHAR>(target, psBuffer, lvthi, 20, psCompareString)) {
+					if (VerifyAndProcessInput<PTCHAR>(target, psBuffer, lvthi, vTree, 20, psCompareString)) {
 						bUpdateTree = TRUE;
 					}
 					break;
 				}
 				default: {
 					const TCHAR* psCompareString = COMPARE_STRING_DOUBLE;
-					if (VerifyAndProcessInput<DOUBLE>(target, psBuffer, lvthi, 20, psCompareString)) {
+					if (VerifyAndProcessInput<DOUBLE>(target, psBuffer, lvthi, vTree, 20, psCompareString)) {
 						bUpdateTree = TRUE;
 					}
 					break;
@@ -336,7 +340,7 @@ LRESULT CALLBACK AuxiliaryEditProc(INT code, WPARAM wParam, LPARAM lParam) {
 	return CallNextHookEx(NULL, code, wParam, lParam);
 }
 
-VOID HandleConflicts(ConflictsArray& bConflicts, HWND hDlg) {
+BOOL HandleConflicts(ConflictsArray& bConflicts, HWND hDlg) {
 	UINT iConflict = 0;
 	BOOL bDrawWarning = FALSE;
 	std::vector<std::vector<TCHAR>> vlpszConflictInfo;
@@ -356,7 +360,8 @@ VOID HandleConflicts(ConflictsArray& bConflicts, HWND hDlg) {
 	else {
 		ShowWindow(hWarn, SW_HIDE);
 	}
-	return;
+	bUpdateTree = TRUE;
+	return !bDrawWarning;
 }
 
 // nareszcie!
@@ -397,7 +402,8 @@ LEAF PrepareTree(LEAF_VECTOR& vLeaves) {
 	ten STATIC to kluczowa czêœæ kodu, bo
 	dziêki niemu to po prostu Dzia³a™
 	*/
-	STATIC LEAF_VECTOR vDone(4 * vLeaves.size());
+	STATIC LEAF_VECTOR vDone(4* sizeof(vLeaves));
+	vDone.clear();
 
 	while (vLeaves.size() > 1) { // 0
 		// TODO: podmieniæ algorytm na w³asny
@@ -423,7 +429,7 @@ LEAF PrepareTree(LEAF_VECTOR& vLeaves) {
 		vLeaves.erase(vLeaves.begin());
 		lBiggerLEAF.LeftChild = &vDone[iLEAF];
 		lBiggerLEAF.RightChild = &vDone[iLEAF + 1];
-		memcpy(lBiggerLEAF.tFPValue, lpszNewTFP, FPLength);
+		lBiggerLEAF.tFPValue = lpszNewTFP;
 
 		vLeaves.push_back(lBiggerLEAF);
 
@@ -497,7 +503,7 @@ VOID DrawTree(LEAF& lTree, HWND hwnd, TREEPROPERTIES& tp) {
 		static_cast<LONG>(cyDlg + 20) };
 	RECT rBubbleRect = CreateRect(pStart, tp.cxInnerLeafWidth, tp.cyTotalLeafHeight);
 	Ellipse(hdc, rBubbleRect.left, rBubbleRect.top, rBubbleRect.right, rBubbleRect.bottom);
-	DrawTextEx(hdc, lTree.tFPValue, 20, &rBubbleRect, DT_VCENTER | DT_SINGLELINE, &dtParams);
+	DrawTextEx(hdc, (LPWSTR) lTree.tFPValue.c_str(), lTree.tFPValue.length(), &rBubbleRect, DT_VCENTER | DT_SINGLELINE, &dtParams);
 	POINT pTarget = CenterDown(rBubbleRect);
 	MoveToEx(hdc, pTarget.x, pTarget.y, NULL);
 
@@ -597,16 +603,16 @@ VOID DrawLeaf(HWND hwnd, PPOINT pStart, LEAF& lChild, UINT iIncomingLevel, BOOL 
 	pStart->x -= TreeProps.cxInnerLeafWidth / 2;
 	RECT rect = CreateRect(pStart, TreeProps.cxInnerLeafWidth, TreeProps.cyTotalLeafHeight);
 	Rectangle(hdc, rect.left, rect.top, rect.right, rect.bottom);
-	if (lstrlen(lChild.tSymbol) != 0) {
-		TSTRING(25) lpszBuffer = {};
-		_snwprintf_s(lpszBuffer.data(), 25, 25, TEXT("%s (%s)"), lChild.tFPValue, lChild.tSymbol);
+	if (lstrlen(lChild.tSymbol.data()) != 0) {
+		TSTRING(40) lpszBuffer = {};
+		_snwprintf_s(lpszBuffer.data(), 40, 40, TEXT("%s (%s)"), lChild.tFPValue.c_str(), lChild.tSymbol.c_str());
 		SetTextColor(hdc, RED);
 		// dlaczego 8?
-		DrawTextEx(hdc, lpszBuffer.data(), 8, &rect, DT_NOCLIP | DT_VCENTER | DT_SINGLELINE, &dtParams);
+		DrawTextEx(hdc, lpszBuffer.data(), 40, &rect, DT_NOCLIP | DT_VCENTER | DT_SINGLELINE, &dtParams);
 		SetTextColor(hdc, BLACK);
 	}
 	else
-		DrawTextEx(hdc, lChild.tFPValue, 20, &rect, DT_VCENTER | DT_SINGLELINE, &dtParams);
+		DrawTextEx(hdc, (LPWSTR) lChild.tFPValue.c_str(), lChild.tFPValue.length(), &rect, DT_VCENTER | DT_SINGLELINE, &dtParams);
 	// ostatnia korekta: jestem w lewym górnym rogu liœcia, chcê byæ na œrodku dolnej krawêdzi
 	pStart->x += TreeProps.cxInnerLeafWidth / 2;
 	pStart->y += TreeProps.cyTotalLeafHeight;
@@ -639,3 +645,21 @@ TREEPROPERTIES CreateTreeProperties(LEAF& lTree, UINT cLeaves, HWND hwnd) {
 BOOL __stdcall Ellipse(HDC hdc, RECT& rect) {
 	return Ellipse(hdc, rect.left, rect.top, rect.right, rect.bottom);
 };
+
+
+LEAF_VECTOR CreateTreeFromList(HWND hList) {
+	LEAF_VECTOR vLeaves;
+	LEAF lLeaf = {};
+	TCHAR psBuffer[60] = {};
+	for (UINT i = 0; i < ListView_GetItemCount(hList); i++) {
+		ListView_GetItemText(hList, i, static_cast<INT>(COLUMNS::ID), psBuffer, 50);
+		lLeaf.ID = _wtoi(psBuffer);
+		ListView_GetItemText(hList, i, static_cast<INT>(COLUMNS::SYMBOL), psBuffer, 50);
+		lLeaf.tSymbol = psBuffer;
+		ListView_GetItemText(hList, i, static_cast<INT>(COLUMNS::VALUE), psBuffer, 50);
+		lLeaf.tFPValue = psBuffer;
+		lLeaf.FPValue = _wtof(psBuffer);
+		vLeaves.push_back(lLeaf);
+	}
+	return vLeaves;
+}
