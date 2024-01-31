@@ -21,7 +21,7 @@
 #define IDM__ZAKO_CZ_TALT_F1                    40000
 #define IDR_TREE_SPEEDRUN                       40000
 #define IDS_SINE                                40000
-#define IDC_TRIG_RANGE_FROM                     40001
+#define IDC_TRIG_COLOR                          40001
 #define IDC_WARN_PLACEHOLDER                    40001
 #define IDM_W_A_CIWO_CI_GRAFIKI___1             40001
 #define IDS_COSINE                              40001
@@ -36,14 +36,16 @@
 #define IDC_PIVO                                40004
 #define IDM__POKAZ_TRYGONOMETRII___1            40004
 #define IDS_ORDER                               40004
-#define IDC_RADIO1                              40005
-#define IDC_TRIG_RANGE_TO                       40005
+#define IDC_TRIG_COLOR_BOX                      40005
 #define IDM_SINUS1                              40005
 #define IDS_SYMBOL                              40005
+#define IDC_RADIO_AUTO                          40006
 #define IDM_COSINUS1                            40006
 #define IDS_PROB_VALUE                          40006
+#define IDC_TREE_AUTO_LABEL                     40007
 #define IDM_NIC3                                40007
 #define IDS_FREQ_VALUE                          40007
+#define IDC_TREE_AUTO_EDIT                      40008
 #define IDM_TANGENS1                            40008
 #define IDS_TREE_ID_ERROR                       40008
 #define IDM_COTANGENS1                          40009

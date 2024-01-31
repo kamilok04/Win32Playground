@@ -5,6 +5,9 @@
 #include <strsafe.h>
 #include <windowsx.h>
 #include <winerror.h>
+#include <d2d1.h>
+#include <d2d1helper.h>
+#include <dwrite.h>
 
 // standard
 #include <array>
@@ -13,6 +16,7 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <map>
 
 // mimo #include parę plików nie chciało się automatycznie wczytać
 #pragma comment(lib, "winmm.lib")
@@ -28,7 +32,9 @@
 // wiele typów już jest pisane W_TAKI_SPOSÓB, więc te też mogą
 // w dodatku Windows używa notacji węgierskiej (np. char lpszTekst[20] = {})
 // ten projekt też jej w miarę możliwości przestrzega
-
+// 
+// za robienie wszystkiego inaczej
+// Microsoftowi wielkie HWND
 #define STATIC static
 #define AUTO auto
 #define STRUCT struct
@@ -41,6 +47,10 @@
 #define TYPEDEF typedef
 #define UNION union
 #define cot(x) (1 / tan(x))
+#define DOUBLE double
+#define LDOUBLE long double
+#define DOPOKI_AUTORA_NIE_BEDZIE_STAC_NA_PIWO for(;;)
+
 
 // :)
 #define SAMOCHÓD AUTO
@@ -59,6 +69,9 @@
 #define WHITE	RGB(255, 255, 255)
 #define BLACK	RGB(0, 0, 0)
 
+// stałe
+ENUM CLASS DIMENSIONS : INT{ X = 0, Y = 1, DIMENSIONS_MAX };
+
 // Funkcje używane w main.cpp
 LRESULT CALLBACK MainWndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK GraphicsDemoWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -71,6 +84,7 @@ ATOM ZarejestrujKlase(WNDCLASSEX*);
 HWND GetGrandParent(HWND); 
 HBITMAP CaptureScreenPart(HDC, INT x, INT y, INT cX, INT cY);
 BOOL DrawScreenPart(HDC, INT x, INT y, HBITMAP);
+LONG GetRectDimension(RECT*, DIMENSIONS);
 
 // szablony użytkowe
 // ============================================================

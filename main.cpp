@@ -79,7 +79,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	// w³¹cz co bardziej zaawansowane, ale nadal standardowe, kontrolki
 	INITCOMMONCONTROLSEX iccex = {};
 	iccex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-	iccex.dwICC = ICC_BAR_CLASSES | ICC_TAB_CLASSES; // paski narzêdzi, statusu, suwaki, wskazówki
+	iccex.dwICC = ICC_BAR_CLASSES | ICC_TAB_CLASSES | ICC_COOL_CLASSES; // paski narzêdzi, statusu, suwaki, wskazówki, rebary
 	if(!InitCommonControlsEx(&iccex)) AWARIA(TEXT("nie ma kontrolek!"));
 
 	MSG msg;
@@ -147,7 +147,9 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				atom = RegisterClassEx(pwc);
 			}
 
-			HWND childHwnd = CreateWindowEx(NULL, reinterpret_cast<LPCWSTR>(atom), TEXT("Kodowanie Huffmana"), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 1024, 768,
+			HWND childHwnd = CreateWindowEx(NULL, reinterpret_cast<LPCWSTR>(atom), 
+				TEXT("Kodowanie Huffmana"), WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
+				CW_USEDEFAULT, CW_USEDEFAULT, 1024, 768,
 				hwnd, NULL, NULL, NULL);
 			UpdateWindow(childHwnd);
 			ShowWindow(childHwnd, 1);
@@ -200,7 +202,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				atom = RegisterClassEx(pwc);;
 			}
 			HWND childHwnd = CreateWindowEx(0, reinterpret_cast<LPCWSTR>(atom), TEXT("Pokaz rysowania trygonometrii"),
-				WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 1200, 800,
+				WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, 1200, 800,
 				hwnd, NULL, NULL, NULL);
 			UpdateWindow(childHwnd);
 			ShowWindow(childHwnd, 1);
@@ -292,7 +294,24 @@ BOOL DrawScreenPart(HDC hdc, INT x, INT y, HBITMAP hBitmap) {
 	return bResult;
 }
 
+/**  
+ * Prosta funkcja zwracaj¹ca wymiar prostok¹ta.
+ * 
+ * \param rect	- prostok¹t
+ * \param x		- TRUE, jeœli chcemy szerokoœæ (domyœlnie), FALSE, jeœli wysokoœæ
+ * \return		- wyliczona d³ugoœæ
+ */
+LONG GetRectDimension(RECT* lpRect, DIMENSIONS dDim = DIMENSIONS::X) {
+	return dDim == DIMENSIONS::X ? lpRect->right - lpRect->left : lpRect->bottom - lpRect->top;
+}
 
+
+/**
+ * Funkcja owijaj¹ca b³êdy w sposób przyjaŸniejszy u¿ytkownikowi.
+ *  
+ * \param lpszFunc - nazwa funkcji do wyœwietlenia, w praktyce dowolny tekst
+ * \return NIE! Co wiêcej, koñczy program
+ */
 [[noreturn]] void AWARIA(LPCWSTR lpszFunc)
 {
 	LPVOID lpMsgBuf = nullptr;
