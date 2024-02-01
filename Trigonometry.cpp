@@ -443,7 +443,7 @@ DWORD WINAPI DrawTrig() {
 	}
 
 	STATIC BOOL bInterrupt = FALSE;
-	std::vector<POINT> vPoints(dpp.ClientRect.right / NUM_CYCLES);
+	std::vector<POINT> vPoints(dpp.ClientRect.right);
 
 	HDC hdc = NULL;
 	hdc = BeginPaint(dpp.hwnd, &ps);
