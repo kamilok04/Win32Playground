@@ -19,7 +19,7 @@ IDB_KOTEK          BITMAP         "bitmap1.bmp"
 
 
 LANGUAGE LANG_POLISH, SUBLANG_DEFAULT
-IDB_PIVO           BITMAP         "res/1045_Bitmap_113.bmp"
+IDB_PIVO           BITMAP         "bitmap2.bmp"
 
 
 
@@ -202,7 +202,7 @@ IDR_AKCELERATOR_TRIG ACCELERATORS
 // Icon resources
 //
 LANGUAGE LANG_POLISH, SUBLANG_DEFAULT
-IDI_PIVO           ICON           "res/1045_Icon_111.ico"
+IDI_PIVO           ICON           "icon1.ico"
 
 
 LANGUAGE LANG_POLISH, SUBLANG_DEFAULT
@@ -210,4 +210,4 @@ IDI_PIVO_256       ICON           "icon2.ico"
 
 
 LANGUAGE LANG_POLISH, SUBLANG_DEFAULT
-IDI_WARN           ICON           "icon5.ico"
+IDI_WARN           ICON           "icon3.ico"

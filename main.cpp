@@ -234,7 +234,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 			}
-			// chuj->atom = 0;
+		
 			break;
 		}
 
@@ -358,7 +358,8 @@ HBITMAP CaptureScreenPart(HDC hdc, INT x, INT y, INT cX, INT cY) {
  * \return - czy siê uda³o
  */
 BOOL DrawScreenPart(HDC hdc, INT x, INT y, HBITMAP hBitmap) {
-	BITMAP bmp;
+	
+	BITMAP bmp = {};
 	HDC hdcMem = CreateCompatibleDC(hdc);
 	GetObject(hBitmap, sizeof(BITMAP), &bmp);
 	SelectObject(hdcMem, hBitmap);
