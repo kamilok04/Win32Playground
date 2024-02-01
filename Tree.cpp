@@ -105,7 +105,7 @@ INT_PTR TreeDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			ScreenToClient(GetDlgItem(hwnd, IDC_TREE_LEAVES), &point);
 			lvthi.pt = point;
 			if (ListView_SubItemHitTest(GetDlgItem(hwnd, IDC_TREE_LEAVES), &lvthi) == -1) break;
-			// nie przerywam ca³ego programu, bo nie zawsze ca³e okno listy jest pe³ne pozycji
+			// nie zg³aszam tu ¿adnego b³êdu mimo pud³a, lista nie musi byæ pe³na wartoœci
 			// wtedy wyjœcie bez dzia³ania to po¿¹dany efekt
 			iItem = lvthi.iItem;
 
@@ -264,6 +264,12 @@ INT_PTR TreeDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	}
 	return TRUE;
 }
+/**
+ * Zapisz nag³ówki listy.
+ * 
+ * \param hList - uchwyt do listy
+ * \return 
+ */
 BOOL AddListHeaders(HWND hList) {
 	WCHAR psBuffer[50] = {};
 	LVCOLUMN lvc = {};
@@ -285,6 +291,14 @@ BOOL AddListHeaders(HWND hList) {
 	return TRUE;
 }
 
+
+/**
+ * Wczytaj liœæ z tablicy i zapisz go w oknie listy.
+ * 
+ * \param hList - okno listy
+ * \param LEAF	- liœæ do odczytania
+ * \return 
+ */
 static BOOL InsertListItem(HWND hList, struct LEAF& LEAF) {
 	TSTRING(10) lpszID = {};
 	swprintf_s(lpszID.data(), 10, COMPARE_STRING_UINT, LEAF.ID);
@@ -306,6 +320,14 @@ static BOOL InsertListItem(HWND hList, struct LEAF& LEAF) {
 	return TRUE;
 }
 
+/**
+ * Funkcja opiekuje siê drzewem - od niezoptymalizowanego stosu liœci do grafiki.
+ * 
+ * \param vLeaves	- wektor liœci
+ * \param hwnd		- okno, w którym bêdzie rysowanie
+ * \param cLeaves	- 
+ * \return 
+ */
 VOID GenerateTree(LEAF_VECTOR& vLeaves, HWND hwnd, UINT cLeaves) {
 
 	STATIC LEAF lOptimizedTree;
@@ -333,7 +355,14 @@ VOID GenerateTree(LEAF_VECTOR& vLeaves, HWND hwnd, UINT cLeaves) {
 	return;
 }
 
-
+/**
+ * Zajmij siê polem tekstowym .
+ * 
+ * \param code
+ * \param wParam
+ * \param lParam
+ * \return 
+ */
 LRESULT CALLBACK AuxiliaryEditProc(INT code, WPARAM wParam, LPARAM lParam) {
 
 	if (code < 0) return CallNextHookEx(NULL, code, wParam, lParam);
@@ -390,6 +419,14 @@ LRESULT CALLBACK AuxiliaryEditProc(INT code, WPARAM wParam, LPARAM lParam) {
 	return CallNextHookEx(NULL, code, wParam, lParam);
 }
 
+
+/**
+ * Jeœli s¹ konflikty, poinformuj o nich u¿ytkownika.
+ * 
+ * \param bConflicts - tablica z konfliktami
+ * \param hDlg - gdzie wystawiæ u¿ytkownikowi informacjê?
+ * \return BOOL - prawda, jeœli nie ma konfliktów (i nie trzeba informowaæ u¿ytkownika)
+ */
 BOOL HandleConflicts(ConflictsArray& bConflicts, HWND hDlg) {
 	UINT iConflict = 0;
 	BOOL bDrawWarning = FALSE;
@@ -689,6 +726,14 @@ VOID DrawLeaf(HWND hwnd, PPOINT pStart, LEAF& lChild, UINT iIncomingLevel, BOOL 
 	return;
 }
 
+/**
+ * Tworzy w³aœciwoœci drzewa.
+ * 
+ * \param lTree - ju¿ zoptymalizowane drzewo
+ * \param cLeaves - iloœæ liœci
+ * \param hwnd - okno, w którym bêdzie rysowane
+ * \return TreeProperties - w³aœciwoœci drzewa
+ */
 TREEPROPERTIES CreateTreeProperties(LEAF& lTree, UINT cLeaves, HWND hwnd) {
 	TEXTMETRIC tm = {};
 	HDC hdc = GetDC(hwnd);
@@ -714,11 +759,17 @@ TREEPROPERTIES CreateTreeProperties(LEAF& lTree, UINT cLeaves, HWND hwnd) {
 	return tp;
 }
 
+// prze³adowanie funkcji biblioteki
 BOOL __stdcall Ellipse(HDC hdc, RECT& rect) {
 	return Ellipse(hdc, rect.left, rect.top, rect.right, rect.bottom);
 };
 
-
+/**
+ * Utwórz drzewo na podstawie listy.
+ * 
+ * \param hList - lista
+ * \return - niezoptymalizowane drzewo 
+ */
 LEAF_VECTOR CreateTreeFromList(HWND hList) {
 	LEAF_VECTOR vLeaves;
 	LEAF lLeaf = {};
@@ -736,7 +787,12 @@ LEAF_VECTOR CreateTreeFromList(HWND hList) {
 	return vLeaves;
 }
 
-
+/**
+ * Utwórz niezoptymalizowany stos liœci na podstawie pola tekstowego.
+ * 
+ * \param psBuffer - pole tekstowe
+ * \return wektor do liœci
+ */
 LEAF_VECTOR ProcessAutoText(PTCHAR psBuffer) {
 	std::map<TCHAR, UINT> mLeaves;
 	TCHAR* psCopy = psBuffer;
