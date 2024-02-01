@@ -1,7 +1,15 @@
 #include "GraphicsDemo.h"
 
 
-
+/**
+ * Obs³uguje okno wyœwietlaj¹ce mo¿liwoœci systemu.
+ * 
+ * \param hwnd
+ * \param message
+ * \param wParam
+ * \param lParam
+ * \return zwyk³y
+ */
 LRESULT CALLBACK GraphicsDemoWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	static int cxChar, cyChar, cxCaps, cxClient, cyClient, iMaxWidth;
 	int i, x, y, iVertPos, iHorzPos, iPaintBeg, iPaintEnd;
@@ -20,7 +28,6 @@ LRESULT CALLBACK GraphicsDemoWndProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 		cyChar = tm.tmHeight + tm.tmExternalLeading;
 		ReleaseDC(hwnd, hdc);
 		iMaxWidth = 50 * cxChar + 22 * cxCaps;
-		PlaySound(TEXT("hellowin.wav"), NULL, SND_FILENAME | SND_ASYNC);
 		return 0;
 	case WM_SIZE:
 		// trzeba rozbiæ lParam
@@ -133,6 +140,23 @@ LRESULT CALLBACK GraphicsDemoWndProc(HWND hwnd, UINT message, WPARAM wParam, LPA
 		}
 		EndPaint(hwnd, &ps);
 		return 0;
+	case WM_MOUSEWHEEL:
+	{
+		// odczytaj obrót...
+		short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+		// ... i przet³umacz na przewijanie
+		SendMessage(hwnd, WM_VSCROLL, zDelta > 0 ? SB_LINEUP : SB_LINEDOWN, 0);
+
+		break;
+	}
+	case WM_MOUSEHWHEEL: {
+		// odczytaj obrót...
+		short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+		// ... i przet³umacz na przewijanie
+		SendMessage(hwnd, WM_HSCROLL, zDelta < 0 ? SB_LINELEFT : SB_LINERIGHT, 0);
+
+		break;
+	}
 	case WM_DESTROY:
 		return 0;
 	}

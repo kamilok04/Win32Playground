@@ -1,30 +1,34 @@
 #include "Trigonometry.h"
 // problemy:
-// - funkcje o mniejszym zakresie nie powinny siê rysowaæ w [0, cxClient], tylko w swoim zakresie
+// - zrobione? - funkcje o mniejszym zakresie nie powinny siê rysowaæ w [0, cxClient], tylko w swoim zakresie
 // - jak dobrze narysowaæ tangensa/cotangensa?
-// - to s¹ funkcje OKRESOWE, naprawdê da siê to zoptymalizowaæ lepiej
-// - zmiana koloru funkcji (jakaœ paletka jak z painta)
+// - zrobione  - to s¹ funkcje OKRESOWE, naprawdê da siê to zoptymalizowaæ lepiej
+// - zrobione  - zmiana koloru funkcji (jakaœ paletka jak z painta)
 
 #define NUM_CYCLES 4
 
 // wstêpne parametry funkcji
-STATIC STRUCT TrigData TrigFunctions[4] = {
-	{SINE,		TRUE	, KPI(-1)	, KPI(1), 20},
-	{COSINE,	TRUE	, KPI(-1)	, KPI(1), 20},
-	{TANGENT,	FALSE	, KPI(-0.8)	, KPI(0.8), 40},
-	{COTANGENT, FALSE	, KPI(-1)	, KPI(1), 20}
+STATIC STRUCT TrigData TrigFunctions[TRIG_ID::TRIG_ID_MAX] = {
+	{SINE,		TRUE	, KPI(-1)	, KPI(1), 20, 3},
+	{COSINE,	TRUE	, KPI(-1)	, KPI(1), 20, 3}, 
+	{TANGENT,	FALSE	, KPI(-1)	, KPI(1), 20, 3},
+	{COTANGENT, FALSE	, KPI(-1)	, KPI(1), 20, 3},
+	{DEMO1,		FALSE	, 0			, KPI(2), 40, 3, 3},
+	{DEMO2,		FALSE	, 0			, KPI(2), 40, 3, 4}
 };
 
 // wstêpne parametry rysowania
 STATIC COLORREF cTrigColors[TRIG_ID::TRIG_ID_MAX] = {
-	RED, GREEN, BLUE, PURPLE
+	RED, GREEN, BLUE, PURPLE, YELLOW, BLACK
 };
 
 STATIC HPEN hpColors[TRIG_ID::TRIG_ID_MAX] = {
-	CreatePen(PS_SOLID, 3, cTrigColors[TRIG_ID::SINE]),
-	CreatePen(PS_SOLID, 3, cTrigColors[TRIG_ID::COSINE]),
-	CreatePen(PS_SOLID, 3, cTrigColors[TRIG_ID::TANGENT]),
-	CreatePen(PS_SOLID, 3, cTrigColors[TRIG_ID::COTANGENT])
+	CreatePen(PS_SOLID, TrigFunctions[TRIG_ID::SINE].thickness, cTrigColors[TRIG_ID::SINE]),
+	CreatePen(PS_SOLID, TrigFunctions[TRIG_ID::COSINE].thickness, cTrigColors[TRIG_ID::COSINE]),
+	CreatePen(PS_SOLID, TrigFunctions[TRIG_ID::TANGENT].thickness, cTrigColors[TRIG_ID::TANGENT]),
+	CreatePen(PS_SOLID, TrigFunctions[TRIG_ID::COTANGENT].thickness, cTrigColors[TRIG_ID::COTANGENT]),
+	CreatePen(PS_SOLID, TrigFunctions[TRIG_ID::DEMO1].thickness, cTrigColors[TRIG_ID::DEMO1]),
+	CreatePen(PS_SOLID, TrigFunctions[TRIG_ID::DEMO2].thickness, cTrigColors[TRIG_ID::DEMO2])
 };
 
 // Zmienne globalne --------------------
@@ -37,6 +41,7 @@ STATIC PTP_WORK pWork = NULL;
 STATIC PTP_WORK pAnimate = NULL;
 STATIC PTP_CLEANUP_GROUP pCleanup = NULL;
 STATIC HWND hSpeedometer = NULL;
+STATIC TRIG_ID tiSelected[TRIG_ID::TRIG_ID_MAX] = {};
 
 // -------------------------------------
 
@@ -56,14 +61,16 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 		hSpeedometer = CreateWindowEx(0, TRACKBAR_CLASS, NULL, WS_CHILD | WS_VISIBLE, 200, 0, 200, 50, hwnd, NULL, GetInstanceModule(NULL), NULL);
 		if (hSpeedometer == NULL) AWARIA(TEXT("nie uda³o siê utworzyæ suwaka"));
 		SendMessage(hSpeedometer, TBM_SETRANGE, TRUE, MAKELONG(-100, 100));
+
 		//	SendMessage(hSpeedometer, TBM_SETPAGESIZE, 0, 1);
-		
+		HWND hText = CreateWindowEx(NULL, TEXT("STATIC"), TEXT("Prêdkoœæ animacji (-100 - 100)"), WS_CHILD | WS_VISIBLE | SS_CENTER, 0, 0, 200, 50, hwnd, NULL, GetInstanceModule(NULL), NULL);
+		if (hText == NULL) AWARIA(TEXT("nie uda³o siê utworzyæ tekstu"));
+		hText = CreateWindowEx(NULL, TEXT("STATIC"), TEXT("Przyspieszenie animacji (-5 - 5)"), WS_CHILD | WS_VISIBLE | SS_CENTER, 400, 0, 250, 50, hwnd, NULL, GetInstanceModule(NULL), NULL);
 		hAccelerometer = CreateWindowEx(0, TRACKBAR_CLASS, NULL, WS_CHILD | WS_VISIBLE, 650, 0, 200, 50, hwnd, NULL, GetInstanceModule(NULL), NULL);
 		if (hAccelerometer == NULL) AWARIA(TEXT("nie uda³o siê utworzyæ suwaka"));
 		SendMessage(hAccelerometer, TBM_SETRANGE, TRUE, MAKELONG(-5, 5));
 		//	SendMessage(hAccelerometer, TBM_SETPAGESIZE, 0, 1);
-		hr = CreateRebar(hwnd, hSpeedometer, hAccelerometer);
-		if (FAILED(hr)) AWARIA(TEXT("nie uda³o siê utworzyæ rebara"));
+
 		UINT uID = 0;
 		for (auto& aFunc : TrigFunctions) {
 			switch (aFunc.type) {
@@ -71,24 +78,30 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 			case COSINE: uID = IDM_COSINUS1; break;
 			case TANGENT: uID = IDM_TANGENS1; break;
 			case COTANGENT: uID = IDM_COTANGENS1; break;
+			case DEMO1: uID = IDM_DEMO_1; break;
+			case DEMO2: uID = IDM_DEMO_2; break;
 			}
 			if (aFunc.drawn)
 				CheckMenuItem(hMenu, uID, MF_CHECKED);
 		}
+		// ustaw wymiary wstêpne dla rysowania funkcji
 		dpp.hwnd = hwnd;
 		GetClientRect(dpp.hwnd, &dpp.ClientRect);
+		
+		// napompuj basenik
 		if (pWork == NULL) hr = PrepareThreadPool(2, pPool);
 		if (FAILED(hr)) AWARIA(TEXT("nie uda³o siê utworzyæ puli w¹tków"));
+
 		break;
 	}
 	case WM_HSCROLL: {
 		HWND hParam = (HWND)lParam;
 		if (hParam == hSpeedometer) {
-			cAnimSpeed = SendMessage(hParam, TBM_GETPOS, 0, 0);
+			cAnimSpeed = (INT)SendMessage(hParam, TBM_GETPOS, 0, 0);
 			break;
 		}
 		if (hParam == hAccelerometer) {
-			cAnimAccel = SendMessage(hParam, TBM_GETPOS, 0, 0);
+			cAnimAccel = (INT)SendMessage(hParam, TBM_GETPOS, 0, 0);
 			break;
 		}
 		break;
@@ -97,7 +110,6 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 	case WM_SIZE: {
 		dpp.ClientRect.right = LOWORD(lParam);
 		dpp.ClientRect.bottom = HIWORD(lParam);
-
 		return 0;
 	}
 	case WM_PAINT: {
@@ -109,17 +121,24 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 		}
 		return 0;
 	}
+	
 	case WM_COMMAND: {
+		if (LOWORD(wParam) == IDM_RESET_TRIG) {
+			RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+			break;
+		}
 		// weŸ informacje o pozycji w menu i odpowiednio zareaguj 
 		MENUITEMINFO mii = {};
-		mii.cbSize = sizeof(MENUITEMINFO);
-		// wa¿ne: ustaw maskê! inaczej ca³a struktura siê wyzeruje i bêdzie przykro
-		mii.fMask |= MIIM_STATE;
-		if (GetMenuItemInfo(hMenu, LOWORD(wParam), FALSE, &mii) == 0) AWARIA(TEXT("gdzie s¹ TE funkcje?"));
-		CheckMenuItem(hMenu, LOWORD(wParam), (mii.fState & MFS_CHECKED) ? MF_UNCHECKED : MF_CHECKED);
-		ToggleTrigDraw(LOWORD(wParam), hwnd);
+		if (LOWORD(wParam) != IDM_TRIG_RANGE) {
+			mii.cbSize = sizeof(MENUITEMINFO);
+			// wa¿ne: ustaw maskê! inaczej ca³a struktura siê wyzeruje i bêdzie przykro
+			mii.fMask |= MIIM_STATE;
+			GetMenuItemInfo(hMenu, LOWORD(wParam), FALSE, &mii);
+			CheckMenuItem(hMenu, LOWORD(wParam), (mii.fState & MFS_CHECKED) ? MF_UNCHECKED : MF_CHECKED);
+			ToggleTrigDraw(LOWORD(wParam), hwnd);
+		}
 		switch (LOWORD(wParam)) {
-		case IDM_NIC1: {
+		case IDM_TRIG_RANGE: {
 #ifdef _WIN64
 			DialogBox(NULL, MAKEINTRESOURCE(IDD_TRIG), hwnd, TrigDialogProc);
 #else 
@@ -144,10 +163,11 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 
 
 INT_PTR TrigDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-	// inicjalizacja wartoœci
+	// inicjalizacja wartoœcit
 	STATIC HWND hList = NULL;
 	STATIC HWND hIndicator;
 	LRESULT lDlg;
+	STATIC BOOL bAdult = 0;
 
 	HFONT hFont;
 	STATIC HBITMAP hImage;
@@ -157,14 +177,41 @@ INT_PTR TrigDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	case WM_INITDIALOG:
 	{
 		hList = GetDlgItem(hwnd, IDC_TRIG_FUNCTION_SELECT);
-		InitTrigList(hList);
+		InitTrigList(hList, tiSelected);
 		// bitmapa w okienku!
 		// TODO: wkleiæ coœ innego ni¿ piwo
-		hImage = reinterpret_cast<HBITMAP>(LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_PIVO), IMAGE_BITMAP, 0, 0, NULL));
+		if (bAdult < 6) {
+			if ((bAdult = MessageBox(NULL, L"Czy jesteœ doros³y?", L"Pytanie", MB_YESNO | MB_ICONQUESTION)) == IDYES) {
+				hImage = reinterpret_cast<HBITMAP>(LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_PIVO), IMAGE_BITMAP, 0, 0, NULL));
+			}
+			else {
+				hImage = reinterpret_cast<HBITMAP>(LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_KOTEK), IMAGE_BITMAP, 0, 0, NULL));
+			}
+		}
 		if (hImage == NULL) AWARIA(TEXT("piwko"));
 		lDlg = SendDlgItemMessage(hwnd, IDC_PIVO, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hImage);
 		hIndicator = GetDlgItem(hwnd, IDC_TRIG_INDICATOR);
 		// na³ó¿ efekty specjalne na czionkê
+		/* CreateFont, zaskakuj¹co, tworzy czcionkê
+		* Przyjmuje:
+		* - wysokoœæ czcionki
+		* - szerokoœæ czcionki
+		* - k¹t nachylenia linijki
+		* - k¹t nachylenia znaku
+		* - waga czcionki (FW_XXX)
+		* - czy jest pochy³a
+		* - czy jest podkreœlona
+		* - czy jest przekreœlona
+		* - kodowanie znaków
+		* - dok³adnoœæ (OUT_XXX)
+		* - dok³adnoœæ przycinania (CLIP_XXX)
+		* - jakoœæ wyœwietlania (DEFAULT_QUALITY, DEFAULT_PITCH, FF_DONTCARE)
+		* - rodzaj czcionki (proporcjonalnoœæ) i styl (FF_XXX)
+		* - nazwa kroju czcionki (mo¿e byæ NULL)
+		* Wszystkie parametry s¹ obowi¹zkowe :)
+		* 
+		* Zwraca: HFONT albo NULL
+		*/
 		hFont = CreateFont(30, 70, 100, 100, FW_DONTCARE, TRUE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, NONANTIALIASED_QUALITY, FF_DONTCARE, TEXT("Consolas"));
 		if (hFont == NULL) AWARIA(TEXT("hFont"));
 		// zaaplikuj te efekty
@@ -175,15 +222,18 @@ INT_PTR TrigDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 		TCHAR tBuffer[3] = {};
 		_itow_s(dPos, tBuffer, 10);
 		SetWindowText(hIndicator, tBuffer);
+		// ustaw zakres suwaka z gruboœci¹
+		SendMessage(GetDlgItem(hwnd, IDC_TRIG_THICKNESS), TBM_SETRANGE, TRUE, MAKELONG(1, 8));
 		return TRUE;
 	}
 	case WM_CTLCOLORSTATIC:
 	{
 		DWORD dCtrlId = GetDlgCtrlID((HWND)lParam);
 		if (dCtrlId == IDC_TRIG_COLOR_BOX) {
-			COLORREF crColor = cTrigColors[ComboBox_GetCurSel(hList)];
+			TRIG_ID tiSel = tiSelected[ComboBox_GetCurSel(hList)];
+			COLORREF crColor = cTrigColors[tiSel];
 			HBRUSH hbr = CreateSolidBrush(crColor);
-			SetBkColor((HDC)wParam, crColor);
+			SetBkColor((HDC)wParam,crColor);
 			return reinterpret_cast<INT_PTR>(hbr);
 		}
 		// kod do aplikowania zmian czcionki
@@ -217,6 +267,25 @@ INT_PTR TrigDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	}
 	case WM_COMMAND: {
 		switch (LOWORD(wParam)) {
+		case IDC_TRIG_FUNCTION_SELECT: {
+			switch (HIWORD(wParam)) {
+			case CBN_SELCHANGE: {
+				// odœwie¿ okienko z podgl¹dem
+				HWND hBox = GetDlgItem(hwnd, IDC_TRIG_COLOR_BOX);
+				SendMessage(hwnd, WM_CTLCOLORSTATIC, (WPARAM)GetDC(hBox), (LPARAM)hBox);
+				RedrawWindow(hBox, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+				// zmieñ suwak
+				SendMessage(GetDlgItem(hwnd, IDC_TRIG_PRECISION), TBM_SETPOS, TRUE, CORRECTED_SELECTION.precision);
+				TCHAR tBuffer[4]={};
+				_itow_s(CORRECTED_SELECTION.precision, tBuffer, 10);
+				SetWindowText(hIndicator, tBuffer);
+				// zmieñ gruboœæ
+				SendMessage(GetDlgItem(hwnd, IDC_TRIG_THICKNESS), TBM_SETPOS, TRUE, CORRECTED_SELECTION.thickness);
+				break;
+			}
+			}
+			break;
+		}
 		case IDC_TRIG_COLOR: {
 			STATIC COLORREF acrCustomColors[16];
 			STATIC CHOOSECOLOR cc = {};
@@ -228,13 +297,15 @@ INT_PTR TrigDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			cc.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT;
 			BOOL bColor = ChooseColor(&cc);
 			if (bColor == 0) {
+				// u¿ytkownik móg³ anulowaæ
+				if (CommDlgExtendedError() == 0) break;
 				// coœ siê popsu³o przy dialogu do wybierania koloru
 				TCHAR bufor[20] = {};
 				_itow_s((INT)CommDlgExtendedError(), bufor, 10);
 				AWARIA(bufor);
 			}
 			// nie ma awarii, przetwórz kolor
-			UpdateFunctionDrawingParams(hList, cc.rgbResult);
+			UpdateFunctionDrawingParams(hList, CORRECTED_SELECTION.precision, CORRECTED_SELECTION.thickness, cc.rgbResult);
 			// odœwie¿ okienko z podgl¹dem
 			HWND hBox = GetDlgItem(hwnd, IDC_TRIG_COLOR_BOX);
 			SendMessage(hwnd, WM_CTLCOLORSTATIC, (WPARAM)GetDC(hBox), (LPARAM)hBox);
@@ -247,9 +318,11 @@ INT_PTR TrigDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 			// odœwie¿ rysownictwo 
 			RedrawWindow(GetParent(hwnd), NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
 			// zastosuj precyzjê
-			DWORD dPrecision = SendMessage(GetDlgItem(hwnd, IDC_TRIG_PRECISION), TBM_GETPOS, 0, 0);
+			DWORD dPrecision = (DWORD)SendMessage(GetDlgItem(hwnd, IDC_TRIG_PRECISION), TBM_GETPOS, 0, 0);
 			if(!dPrecision) dPrecision = 1; // ma³o ambitne, ale zapobiega dzieleniu przez 0 dalej w kodzie
-			TrigFunctions[ComboBox_GetCurSel(hList)].precision = dPrecision;
+			// zastosuj gruboœæ
+			DWORD dThickness = (DWORD)SendMessage(GetDlgItem(hwnd, IDC_TRIG_THICKNESS), TBM_GETPOS, 0, 0);
+			UpdateFunctionDrawingParams(hList, dPrecision, dThickness, cTrigColors[tiSelected[ComboBox_GetCurSel(hList)]]);
 			EndDialog(hwnd, IDOK);
 
 			break;
@@ -267,31 +340,47 @@ INT_PTR TrigDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
 /**
  * Inicjalizuje listê rozwijan¹ funkcji trygonometrycznych.
- * *
- * * \param HWND hwnd - uchwyt do okienka
- * * \return nie
+ * \param hwnd - uchwyt do listy
+ * \param tiSelected - tablica z wybranymi funkcjami
+ * \return nic
  **/
-VOID InitTrigList(HWND hwnd) {
+STATIC VOID InitTrigList(HWND hList, TRIG_ID* tiSelected) {
 	// wczytaj teskt do listy rozwijanej
 	// domyœlnie za³aduj sinusa, bo tak
+	UINT i = 0;
 	TCHAR tcTmp[16];
 	if (TrigFunctions[TRIG_ID::SINE].drawn) {
 		LoadString(NULL, IDS_SINE, tcTmp, sizeof(tcTmp) / sizeof(TCHAR));
-		SendMessage(hwnd, CB_ADDSTRING, NULL, reinterpret_cast<LPARAM>(tcTmp));
+		SendMessage(hList, CB_ADDSTRING, NULL, reinterpret_cast<LPARAM>(tcTmp));
+		tiSelected[i++] = TRIG_ID::SINE;
 	}
 	if (TrigFunctions[TRIG_ID::COSINE].drawn) {
 		LoadString(NULL, IDS_COSINE, tcTmp, sizeof(tcTmp) / sizeof(TCHAR));
-		SendMessage(hwnd, CB_ADDSTRING, NULL, reinterpret_cast<LPARAM>(tcTmp));
+		SendMessage(hList, CB_ADDSTRING, NULL, reinterpret_cast<LPARAM>(tcTmp));
+		tiSelected[i++] = TRIG_ID::COSINE;
 	}
 	if (TrigFunctions[TRIG_ID::TANGENT].drawn) {
 		LoadString(NULL, IDS_TANGENT, tcTmp, sizeof(tcTmp) / sizeof(TCHAR));
-		SendMessage(hwnd, CB_ADDSTRING, NULL, reinterpret_cast<LPARAM>(tcTmp));
+		SendMessage(hList, CB_ADDSTRING, NULL, reinterpret_cast<LPARAM>(tcTmp));
+		tiSelected[i++] = TRIG_ID::TANGENT;
 	}
 	if (TrigFunctions[TRIG_ID::COTANGENT].drawn) {
 		LoadString(NULL, IDS_COTANGENT, tcTmp, sizeof(tcTmp) / sizeof(TCHAR));
-		SendMessage(hwnd, CB_ADDSTRING, NULL, reinterpret_cast<LPARAM>(tcTmp));
+		SendMessage(hList, CB_ADDSTRING, NULL, reinterpret_cast<LPARAM>(tcTmp));
+		tiSelected[i++] = TRIG_ID::COTANGENT;
 	}
-	SendMessage(hwnd, CB_SETCURSEL, TRIG_ID::SINE, 0);
+	if (TrigFunctions[TRIG_ID::DEMO1].drawn) {
+		LoadString(NULL, IDS_DEMO1, tcTmp, sizeof(tcTmp) / sizeof(TCHAR));
+		SendMessage(hList, CB_ADDSTRING, NULL, reinterpret_cast<LPARAM>(tcTmp));
+		tiSelected[i++] = TRIG_ID::DEMO1;
+		
+	}
+	if (TrigFunctions[TRIG_ID::DEMO2].drawn) {
+		LoadString(NULL, IDS_DEMO2, tcTmp, sizeof(tcTmp) / sizeof(TCHAR));
+		SendMessage(hList, CB_ADDSTRING, NULL, reinterpret_cast<LPARAM>(tcTmp));
+		tiSelected[i++] = TRIG_ID::DEMO2;
+	}
+	ComboBox_SetCurSel(hList, TRIG_ID::SINE);
 	return;
 }
 
@@ -318,6 +407,12 @@ STATIC VOID ToggleTrigDraw(WORD wID, HWND hwnd) {
 	case IDM_COTANGENS1:
 		TrigFunctions[TRIG_ID::COTANGENT].drawn = !TrigFunctions[TRIG_ID::COTANGENT].drawn;
 		break;
+	case IDM_DEMO_1:
+		TrigFunctions[TRIG_ID::DEMO1].drawn = !TrigFunctions[TRIG_ID::DEMO1].drawn;
+		break;
+	case IDM_DEMO_2:
+		TrigFunctions[TRIG_ID::DEMO2].drawn = !TrigFunctions[TRIG_ID::DEMO2].drawn;
+		break;
 
 	}
 	// odœwie¿ okno
@@ -338,11 +433,15 @@ STATIC VOID ToggleTrigDraw(WORD wID, HWND hwnd) {
  */
 DWORD WINAPI DrawTrig() {
 	PAINTSTRUCT ps{};
-	RECT paddedRect = { dpp.ClientRect.left, dpp.ClientRect.top + 100,  dpp.ClientRect.right, dpp.ClientRect.bottom - 100 };
+	RECT paddedRect = { dpp.ClientRect.left, dpp.ClientRect.top + 100 + 50,  dpp.ClientRect.right, dpp.ClientRect.bottom - 100 };
 	LONG cClientY = GetRectDimension(&dpp.ClientRect, DIMENSIONS::Y);
 	// amortyzuj w przypadku ma³ego okna
-	if (cClientY > 200 && cClientY < 300) paddedRect = { paddedRect.left, paddedRect.top - 300 + cClientY, paddedRect.right, paddedRect.bottom + 300 - cClientY };
-	if (cClientY < 200) paddedRect = dpp.ClientRect; // za ma³o miejsca na marginesy jest
+	if (cClientY > 250 && cClientY < 350) paddedRect = { paddedRect.left, paddedRect.top - 350 + cClientY, paddedRect.right, paddedRect.bottom + 350 - cClientY };
+	if (cClientY < 250) {
+		paddedRect = dpp.ClientRect; // za ma³o miejsca na marginesy jest
+		paddedRect.top += 50;
+	}
+
 	STATIC BOOL bInterrupt = FALSE;
 	std::vector<POINT> vPoints(dpp.ClientRect.right / NUM_CYCLES);
 
@@ -352,14 +451,14 @@ DWORD WINAPI DrawTrig() {
 	// wyczyœæ, bardzo wa¿ne po zmianie koloru 
 	FillRect(hdc, &(dpp.ClientRect), (HBRUSH)GetStockObject(WHITE_BRUSH));
 	// narysuj oœ
-	MoveToEx(hdc, dpp.ClientRect.right, dpp.ClientRect.bottom / 2, NULL);
-	LineTo(hdc, 0, dpp.ClientRect.bottom / 2);
+	MoveToEx(hdc, dpp.ClientRect.right, paddedRect.top + GetRectDimension(&paddedRect, DIMENSIONS::Y) / 2, NULL);
+	LineTo(hdc, 0, paddedRect.top + GetRectDimension(&paddedRect, DIMENSIONS::Y) / 2);
 	AUTO hpOldPen = SelectObject(hdc, GetStockObject(DC_PEN));	// zapisz stare pióro
 	for (auto& aFunc : TrigFunctions) {
 		std::vector<POINT>::iterator iBegin = vPoints.begin();
 		std::vector<POINT>::iterator iEnd = vPoints.end();
 		BOOL bNegOverride = FALSE;
-		for (LONG iCycle = 0; iCycle <= NUM_CYCLES; iCycle++) {
+		for (LONG iCycle = 0; iCycle <= aFunc.intendedCycles; iCycle++) {
 			// MoveToEx(hdc, iCycle * cxClient / NUM_CYCLES, dpp->ClientRect.bottom / 2, NULL);
 			if (!aFunc.drawn) continue;
 			DWORD cPoints = PRECISION_TO_POINTS(aFunc.precision);
@@ -394,12 +493,13 @@ DWORD WINAPI DrawTrig() {
 						}
 						vPoints[i].y = static_cast<LONG>(paddedRect.top - dpp.ClientRect.top + GetRectDimension(&paddedRect, DIMENSIONS::Y) * (1 - ldCosine) / 2); break;
 					}
-
-							   // TODO: naprawiæ-------
-
+					// nie dzia³aj¹, jak powinny
+					// problem polega na tym, ¿e obecna implementacja s³abo radzi sobie z dziurami w dziedzinie
+					// oraz z przejœciem +inf => -inf i odwrotnie w zakresie jednego Polyline 
+					// potencjalne rozwi¹zania: PolyPolyLine?
 					case COTANGENT: {
 						if (!i) {
-							vPoints[i].y = dpp.ClientRect.bottom; +10;
+							vPoints[i].y = dpp.ClientRect.bottom +10;
 
 							MoveToEx(hdc, 0, dpp.ClientRect.bottom, NULL);
 							continue;
@@ -407,14 +507,35 @@ DWORD WINAPI DrawTrig() {
 						vPoints[i].y = static_cast<LONG>(GetRectDimension(&dpp.ClientRect, DIMENSIONS::Y) * (1 + ldCosine / ldSine) / 2);
 						break;
 					}
-
 					case TANGENT: {
+						if (!i) {
+							vPoints[i].y = dpp.ClientRect.top - 10;
 
+							MoveToEx(hdc, 0, dpp.ClientRect.top, NULL);
+							continue;
+						}
 						vPoints[i].y = static_cast<LONG>(GetRectDimension(&dpp.ClientRect, DIMENSIONS::Y) * (1 - ldCosine / ldSine) / 2); break;
+					}	
+					case DEMO1: {
+						if (!i) {
+							MoveToEx(hdc, 0, paddedRect.top, NULL);
+							vPoints[i].y = paddedRect.top;
+							continue;
+						}
+						vPoints[i].y = static_cast<LONG>(paddedRect.top - dpp.ClientRect.top + GetRectDimension(&paddedRect, DIMENSIONS::Y) * 
+							((1 - (ldCosine + sin(2*ldYDraft) + cos(3*ldYDraft)) / 2) / 2)); break;
 					}
-
-
-								// ---------
+					case DEMO2: {
+						if (!i) {
+							MoveToEx(hdc, 0, paddedRect.top, NULL);
+							vPoints[i].y = paddedRect.top;
+							continue;
+						}
+						vPoints[i].y = static_cast<LONG>(paddedRect.top - dpp.ClientRect.top + 
+							GetRectDimension(&paddedRect, DIMENSIONS::Y) *
+							((1 - (ldSine + cos(2*ldYDraft) - cos(3*ldYDraft) - cos(4*ldYDraft) -
+								sin(7*ldYDraft) + sin(9*ldYDraft*ldYDraft)) / 2) / 4)); break;
+					}
 					}
 				}
 			}
@@ -447,11 +568,10 @@ DWORD WINAPI DrawTrig() {
  * \return nie
  */
 VOID AnimateTrig() {
-	// te wszystkie 50 w kodzie wynikaj¹ z rêcznie wpisanego offsetu pseudo-rebara
-	// todo: naprawiæ
 	constexpr INT RebarOffset = 50;
-	HDC hdc = GetDC(dpp.hwnd);
-	DOPOKI_AUTORA_NIE_BEDZIE_STAC_NA_PIWO{
+
+	while(1){
+		HDC hdc = GetDC(dpp.hwnd);
 		STATIC INT cAccelAccum = 0;
 		STATIC PAINTSTRUCT ps = {};
 		HBITMAP hBm = NULL;
@@ -481,50 +601,9 @@ VOID AnimateTrig() {
 				SendMessage(hSpeedometer, TBM_SETPOS, TRUE, cAnimSpeed);
 			}
 		}
+		ReleaseDC(dpp.hwnd, hdc);
 		Sleep(3);
 	}
-}
-
-HRESULT CreateRebar(HWND hwnd, HWND hBand1, HWND hBand2) {
-	LRESULT lResult = S_OK;
-	HWND hRebar = CreateWindowEx(WS_EX_TOOLWINDOW,
-		REBARCLASSNAME,
-		NULL,
-		WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS |
-		WS_CLIPCHILDREN |
-		CCS_NODIVIDER | RBS_BANDBORDERS, 0, 0, 0, 0, hwnd, NULL, GetInstanceModule(NULL), NULL);
-	if (hRebar == NULL) AWARIA(TEXT("nie uda³o siê utworzyæ rebara"));
-	// u¿yj go 
-	REBARBANDINFO rbbi = { sizeof(REBARBANDINFO_V3_SIZE) };
-	rbbi.fMask = RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_SIZE;
-	rbbi.fStyle = RBBS_CHILDEDGE | RBBS_GRIPPERALWAYS;
-	RECT trackbarRect = {};
-	GetClientRect(hBand1, &trackbarRect);
-
-	rbbi.lpText = (LPWSTR)TEXT("");
-	rbbi.cyChild = 200;
-	rbbi.cxMinChild = trackbarRect.right - trackbarRect.left;
-	rbbi.cyMinChild = 200;
-	rbbi.cx = 0;
-	HWND hText = CreateWindowEx(NULL, TEXT("STATIC"), TEXT("Prêdkoœæ animacji (-100 - 100)"), WS_CHILD | WS_VISIBLE | SS_CENTER, 0, 0, 200, 50, hwnd, NULL, GetInstanceModule(NULL), NULL);
-	if (hText == NULL) AWARIA(TEXT("nie uda³o siê utworzyæ tekstu"));
-	rbbi.hwndChild = hText;
-	lResult = SendMessage(hRebar, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rbbi);
-
-	rbbi.hwndChild = hBand1;
-	rbbi.cx = 200;
-	lResult = SendMessage(hRebar, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rbbi);
-
-	if (lResult == 0) AWARIA(TEXT("nie uda³o siê wstawiæ suwaka"));
-	hText = CreateWindowEx(NULL, TEXT("STATIC"), TEXT("Przyspieszenie animacji (-5 - 5)"), WS_CHILD | WS_VISIBLE | SS_CENTER, 400, 0, 250, 50, hwnd, NULL, GetInstanceModule(NULL), NULL);
-
-	rbbi.hwndChild = hBand2;
-
-
-	lResult = SendMessage(hRebar, RB_INSERTBAND, (WPARAM)-1, (LPARAM)&rbbi);
-	if (lResult == 0) AWARIA(TEXT("nie uda³o siê wstawiæ suwaka"));
-
-	return S_OK;
 }
 
 /**
@@ -564,10 +643,12 @@ HRESULT PrepareThreadPool(UINT cThreads, PTP_POOL pPool) {
 	return S_OK;
 }
 
-VOID UpdateFunctionDrawingParams(HWND hList, COLORREF crColor) {
-	cTrigColors[ComboBox_GetCurSel(hList)] = crColor;
-	DeleteObject(hpColors[ComboBox_GetCurSel(hList)]);
-	hpColors[ComboBox_GetCurSel(hList)] = CreatePen(PS_SOLID, 3, crColor);
+VOID UpdateFunctionDrawingParams(HWND hList,DWORD dPrecision, DWORD dThickness, COLORREF crColor) {
+	cTrigColors[tiSelected[ComboBox_GetCurSel(hList)]] = crColor;
+	CORRECTED_SELECTION.precision = dPrecision;
+	CORRECTED_SELECTION.thickness = dThickness;
+	DeleteObject(hpColors[tiSelected[ComboBox_GetCurSel(hList)]]);
+	hpColors[tiSelected[ComboBox_GetCurSel(hList)]] = CreatePen(PS_SOLID, dThickness, crColor);
 	RedrawWindow(GetParent(hList), NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
 	SubmitThreadpoolWork(pWork);
 	return;

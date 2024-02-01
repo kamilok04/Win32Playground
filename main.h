@@ -1,13 +1,12 @@
 ﻿// <windows.h> musi być wezwane przed każdą inną biblioteką systemu
 #include <Windows.h>
-#include "resource.h"
+#include "Resources.h"
 #include <CommCtrl.h>
 #include <strsafe.h>
 #include <windowsx.h>
 #include <winerror.h>
-#include <d2d1.h>
-#include <d2d1helper.h>
-#include <dwrite.h>
+// konflikt nazw?
+#include "DWrite.h"
 
 // standard
 #include <array>
@@ -21,9 +20,10 @@
 // mimo #include parę plików nie chciało się automatycznie wczytać
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "comctl32.lib")
+#pragma comment(lib, "dwrite.lib")
+#pragma comment(lib, "d2d1.lib")
 
 // odkomentuj w celu dodatkowej funkcjonalności
-// (chyba) 
 // #define DEBUG
 
 // wyrzuć najstarszą funkcjonalność; zabiera miejsce, a jest nieużywana
@@ -79,6 +79,7 @@ LRESULT CALLBACK TrigonometryWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM
 LRESULT CALLBACK TreeWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 INT_PTR DefDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 ATOM ZarejestrujKlase(WNDCLASSEX*);
+VOID DrawIntroText(HWND, DWrite&);
 
 // Funkcje używane w więcej niż jednym pliku
 HWND GetGrandParent(HWND); 
@@ -102,6 +103,7 @@ TYPENAME std::enable_if<!std::is_integral<T>::value, T>::type ToLowerTwoPower(T 
 TEMPLATE<TYPENAME T>
 TYPENAME std::enable_if<std::is_integral<T>::value, T>::type ToLowerTwoPower(T t)
 {
+    if (t <= 3) return 2;
 	return t>>2<<2; 
 };
 
@@ -129,19 +131,3 @@ TYPENAME std::enable_if<std::is_integral<T>::value, T>::type ilog2(T t)
 // TODO:    podmienić wywołania AWARIA() na jakieś mniej toporne funkcje obsługi błędów
 //          jakieś osobne okienko może? 
 [[noreturn]] void AWARIA(LPCWSTR lpszFunc); 
-
-/**
- * Funkcja do zwalniania interfejsów/bloków/czegoś jeszcze
- * Nie ma jej w żadnej bibliotece, ale dokumentacja udostępnia jej kod
- * https://learn.microsoft.com/en-us/windows/win32/medfound/saferelease
- * 
- * \param ppT
- */
-template <class T> void SafeRelease(T** ppT)
-{
-    if (*ppT)
-    {
-        (*ppT)->Release();
-        *ppT = NULL;
-    }
-}

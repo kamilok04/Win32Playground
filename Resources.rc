@@ -5,24 +5,9 @@
 #include <windows.h>
 #include <commctrl.h>
 #include <richedit.h>
-#include "resource.h"
+#include "Resources.h"
 #pragma code_page (65001)
 
-
-
-
-//
-// Toolbar resources
-//
-LANGUAGE LANG_POLISH, SUBLANG_DEFAULT
-IDR_TOOLBAR1 TOOLBAR 16, 15
-{
-    BUTTON      IDM__ZAKO_CZ_TALT_F1
-    BUTTON      IDM_W_A_CIWO_CI_GRAFIKI___1
-    SEPARATOR
-    BUTTON      IDM_O_PROGRAMIE____TF1
-    BUTTON      IDC_TRIG_FUNCTION_SELECT
-}
 
 
 
@@ -30,11 +15,11 @@ IDR_TOOLBAR1 TOOLBAR 16, 15
 // Bitmap resources
 //
 LANGUAGE LANG_POLISH, SUBLANG_DEFAULT
-IDB_PIVO           BITMAP         "res/1045_Bitmap_113.bmp"
+IDB_KOTEK          BITMAP         "..\\..\\..\\Downloads\\cat.bmp"
 
 
 LANGUAGE LANG_POLISH, SUBLANG_DEFAULT
-IDR_TOOLBAR1       BITMAP         "res/1045_Bitmap_115.bmp"
+IDB_PIVO           BITMAP         "res/1045_Bitmap_113.bmp"
 
 
 
@@ -50,7 +35,7 @@ IDR_MAIN_MENU MENU
     }
     POPUP "&Opcje"
     {
-        MENUITEM "Nic", IDM_NIC3, GRAYED
+        MENUITEM "Tryb szybszy\tF4", IDM_TOGGLE_EFF_MODE
     }
     POPUP "&Fajne rzeczy"
     {
@@ -76,14 +61,16 @@ IDR_TRIG MENUEX
         MENUITEM "Cocosinus", 40010, 0, MFS_GRAYED
         MENUITEM "Tangens", IDM_TANGENS1, 0, 0
         MENUITEM "Cotangens", IDM_COTANGENS1, 0, 0
+        MENUITEM "Pokazowa 1", IDM_DEMO_1, 0, 0
+        MENUITEM "Pokazowa 2", IDM_DEMO_2, 0, 0
     }
     POPUP "Zakres", 0, 0, 0
     {
-        MENUITEM "Zmień zakres...", IDM_NIC1, 0, 0
+        MENUITEM "Zmień zakres...", IDM_TRIG_RANGE, 0, 0
     }
     POPUP "Inne", 0, 0, 0
     {
-        MENUITEM "nic", IDM_NIC2, 0, 0
+        MENUITEM "Zresetuj", IDM_RESET_TRIG, 0, 0
     }
 }
 
@@ -99,7 +86,7 @@ CAPTION "O programie"
 FONT 8, "Ms Shell Dlg"
 {
     CONTROL         "BIGOS v1.0,0\nKamil Bublij\nProgramowanie I\nXI 2023 - I 2024", IDC_STATIC, WC_STATIC, NOT WS_GROUP | SS_LEFT, 23, 34, 54, 33, WS_EX_LEFT
-    CONTROL         "Cancel", IDCANCEL, WC_BUTTON, WS_TABSTOP | BS_PUSHBUTTON, 98, 31, 50, 14, WS_EX_LEFT
+    CONTROL         "OK", IDCANCEL, WC_BUTTON, WS_TABSTOP | BS_PUSHBUTTON, 98, 31, 50, 14, WS_EX_LEFT
     CONTROL         "OK", IDOK, WC_BUTTON, WS_TABSTOP | BS_DEFPUSHBUTTON, 98, 51, 50, 14, WS_EX_LEFT
     CONTROL         "O programie", IDC_STATIC, WC_BUTTON, BS_GROUPBOX, 10, 14, 150, 70, WS_EX_LEFT
 }
@@ -116,7 +103,7 @@ FONT 8, "Ms Shell Dlg", 400, 0, 1
     CONTROL         "", IDC_WARN_PLACEHOLDER, WC_STATIC, SS_ICON, 40, 120, 21, 20, WS_EX_LEFT
     CONTROL         "Symbole", IDC_STATIC, WC_BUTTON, BS_GROUPBOX, 115, 5, 220, 150, WS_EX_LEFT
     CONTROL         "", IDC_TREE_LEAVES, WC_LISTVIEW, WS_TABSTOP | WS_BORDER | LVS_ALIGNLEFT | LVS_SHOWSELALWAYS | LVS_SINGLESEL | LVS_REPORT, 120, 15, 210, 135, WS_EX_LEFT
-    CONTROL         "Wprowadź tekst:", IDC_TREE_AUTO_LABEL, WC_STATIC, NOT WS_VISIBLE | SS_LEFT, 135, 30, 185, 9, WS_EX_LEFT
+    CONTROL         "Wprowadź tekst:", IDC_TREE_AUTO_LABEL, WC_STATIC, NOT WS_VISIBLE | NOT WS_GROUP | SS_LEFT, 135, 30, 185, 9, WS_EX_LEFT
     CONTROL         "Częstość występowania", IDC_RADIO_FREQ, WC_BUTTON, WS_DISABLED | BS_AUTORADIOBUTTON | BS_MULTILINE, 15, 45, 85, 20, WS_EX_LEFT
     CONTROL         "", IDC_TREE_AUTO_EDIT, WC_EDIT, NOT WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL, 135, 45, 185, 21, WS_EX_LEFT
     CONTROL         "Prawdopodobieństwo wystąpienia", IDC_RADIO_PROB, WC_BUTTON, BS_AUTORADIOBUTTON | BS_MULTILINE, 15, 20, 85, 20, WS_EX_LEFT
@@ -129,22 +116,27 @@ FONT 8, "Ms Shell Dlg", 400, 0, 1
 
 
 LANGUAGE LANG_POLISH, SUBLANG_DEFAULT
-IDD_TRIG DIALOG 0, 0, 270, 220
+IDD_TRIG DIALOG 0, 0, 301, 271
 STYLE DS_3DLOOK | DS_CENTER | DS_MODALFRAME | DS_SHELLFONT | WS_CAPTION | WS_VISIBLE | WS_POPUP | WS_SYSMENU
 CAPTION "Centrum dowodzenia trygonometrią"
 FONT 10, "Microsoft Sans Serif"
 {
-    CONTROL         "Zmień kolor...", IDC_TRIG_COLOR, WC_BUTTON, WS_TABSTOP | BS_PUSHBUTTON, 20, 170, 55, 14, WS_EX_LEFT
-    CONTROL         "", IDC_TRIG_COLOR_BOX, WC_STATIC, SS_LEFT | SS_SUNKEN, 105, 170, 25, 15, WS_EX_LEFT
-    CONTROL         "Obecnie:", IDC_STATIC, WC_BUTTON, BS_GROUPBOX, 98, 160, 40, 32, WS_EX_LEFT
+    CONTROL         "", IDC_TRIG_THICKNESS, TRACKBAR_CLASS, WS_TABSTOP | TBS_AUTOTICKS | TBS_BOTH, 25, 230, 100, 17, WS_EX_LEFT
+    CONTROL         "8", IDC_STATIC, WC_STATIC, NOT WS_GROUP | SS_LEFT, 131, 232, 8, 9, WS_EX_LEFT
+    CONTROL         "1", IDC_STATIC, WC_STATIC, NOT WS_GROUP | SS_LEFT, 14, 232, 8, 9, WS_EX_LEFT
+    CONTROL         "Grubość", IDC_STATIC, WC_BUTTON, BS_GROUPBOX, 10, 215, 140, 40, WS_EX_LEFT
+    CONTROL         "Zmień kolor...", IDC_TRIG_COLOR, WC_BUTTON, WS_TABSTOP | BS_PUSHBUTTON, 20, 179, 55, 14, WS_EX_LEFT
+    CONTROL         "", IDC_TRIG_COLOR_BOX, WC_STATIC, NOT WS_GROUP | SS_LEFT | SS_SUNKEN, 105, 178, 25, 15, WS_EX_LEFT
+    CONTROL         "Obecnie:", IDC_STATIC, WC_BUTTON, BS_GROUPBOX, 98, 168, 40, 32, WS_EX_LEFT
     CONTROL         "0", IDC_TRIG_INDICATOR, WC_STATIC, NOT WS_GROUP | SS_CENTER | SS_RIGHTJUST | SS_CENTERIMAGE, 45, 110, 65, 35, WS_EX_LEFT
     CONTROL         "OK", IDOK, WC_BUTTON, WS_TABSTOP | BS_DEFPUSHBUTTON, 130, 20, 50, 14, WS_EX_LEFT
     CONTROL         "", IDC_TRIG_FUNCTION_SELECT, WC_COMBOBOX, WS_TABSTOP | CBS_DROPDOWNLIST | CBS_HASSTRINGS, 15, 25, 76, 85, WS_EX_LEFT
     CONTROL         "Dokładność", IDC_TRIG_PRECISION, TRACKBAR_CLASS, WS_TABSTOP | TBS_AUTOTICKS | TBS_BOTH, 30, 85, 100, 20, WS_EX_LEFT
     CONTROL         "Anuluj", IDCANCEL, WC_BUTTON, WS_TABSTOP | BS_PUSHBUTTON, 195, 20, 50, 14, WS_EX_LEFT
-    CONTROL         "", IDC_PIVO, WC_STATIC, SS_BITMAP, 165, 75, 91, 114, WS_EX_LEFT
+    CONTROL         "", IDC_PIVO, WC_STATIC, SS_BITMAP, 180, 100, 91, 114, WS_EX_LEFT
     CONTROL         "100", IDC_STATIC, WC_STATIC, NOT WS_GROUP | SS_LEFT, 135, 90, 12, 9, WS_EX_LEFT
-    CONTROL         "Właściwości", IDC_STATIC, WC_BUTTON, BS_GROUPBOX, 6, 51, 255, 165, WS_EX_LEFT
+    CONTROL         "Właściwości", IDC_STATIC, WC_BUTTON, BS_GROUPBOX, 6, 51, 290, 210, WS_EX_LEFT
+    CONTROL         "Kolory", IDC_STATIC, WC_BUTTON, BS_GROUPBOX, 10, 155, 140, 55, WS_EX_LEFT
     CONTROL         "Dokładność (%)", IDC_STATIC, WC_BUTTON, BS_GROUPBOX, 10, 70, 140, 85, WS_EX_LEFT
     CONTROL         "0", IDC_STATIC, WC_STATIC, NOT WS_GROUP | SS_LEFT, 20, 90, 8, 9, WS_EX_LEFT
     CONTROL         "Wybór funkcji", IDC_STATIC, WC_BUTTON, BS_GROUPBOX, 5, 10, 95, 36, WS_EX_LEFT
@@ -170,6 +162,9 @@ STRINGTABLE
     IDS_TREE_SYMBOL_ERROR         "Konflikt symboli."
     IDS_TREE_PROB_SUM_ERROR       "Źle znormalizowane prawdopodobieństwo (suma != 1)"
     IDS_TREE_PROB_VALUE_ERROR     "Co najmniej jedna nieprawidłowa wartość prawdopodobieństwa."
+    IDS_INTRO                     "To jest menu główne aplikacji.\r\nWybierz któryś z modułów, używając przycisków dostępnych u góry okna lub za pomocą skrótu klawiszowego."
+    IDS_DEMO1                     "Pokazowa 1"
+    IDS_DEMO2                     "Pokazowa 2"
 }
 
 
@@ -183,6 +178,22 @@ IDR_AKCELERATOR_CZASTECZEK ACCELERATORS
     VK_F1,         IDR_HELP_SPEEDRUN, VIRTKEY
     "T",            IDR_TRIG_SPEEDRUN, VIRTKEY, CONTROL
     "H",            IDR_TREE_SPEEDRUN, VIRTKEY, CONTROL
+    VK_F4,         IDR_TOGGLE_EFF_MODE, VIRTKEY
+    VK_F4,         IDR_DESTROY_D2D1, VIRTKEY, SHIFT
+    VK_SPACE,      IDR_RESET_TRIG, VIRTKEY
+}
+
+
+
+LANGUAGE LANG_POLISH, SUBLANG_DEFAULT
+IDR_AKCELERATOR_TRIG ACCELERATORS
+{
+    "1",            IDR_SINE, ASCII
+    "2",            IDR_COSINE, ASCII
+    "3",            IDR_TANGENT, ASCII
+    "4",            IDR_COTANGENT, ASCII
+    "5",            IDR_DEMO1, ASCII
+    "6",            IDR_DEMO2, ASCII
 }
 
 
@@ -196,10 +207,6 @@ IDI_PIVO           ICON           "res/1045_Icon_111.ico"
 
 LANGUAGE LANG_POLISH, SUBLANG_DEFAULT
 IDI_PIVO_256       ICON           "icon2.ico"
-
-
-LANGUAGE LANG_POLISH, SUBLANG_DEFAULT
-IDI_TRANSPIVO      ICON           "icon1.ico"
 
 
 LANGUAGE LANG_POLISH, SUBLANG_DEFAULT

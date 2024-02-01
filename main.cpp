@@ -1,20 +1,18 @@
 /* TODO
-	- dorobiæ adnotacje SAL
-
-
-
+	- dorobiæ adnotacje SAL 
+	- podmieniæ wiêkszoœæ wywo³añ AWARIA na coœ mniej agresywnego
 */
 
 #include "main.h"
 
-// i do przodu!
+// (alleluja) i do przodu!
 /**
  * g³ówna funkcja programu
  * 
- * \param hInstance
- * \param hPrevInstance
- * \param lpCmdLine
- * \param iCmdShow
+ * \param hInstance		- uchwyt do instancji programu (pocz¹tek pamiêci programu)
+ * \param hPrevInstance - relikt z 16-bit Windows, obecnie zawsze NULL
+ * \param lpCmdLine		- wskaŸnik do ci¹gu znaków z argumentami wiersza poleceñ
+ * \param iCmdShow		- parametr okreœlaj¹cy jak ma byæ pokazane okno
  * \return kod wyjœcia (0 przy sukcesie, coœ innego przy pora¿ce)
  */
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int iCmdShow) {
@@ -28,20 +26,24 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	wc.hInstance = hInstance;
 	wc.hIcon = reinterpret_cast<HICON>(LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_PIVO_256), IMAGE_ICON, 32, 26, NULL));
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+	wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_INFOBK + 1);
 	wc.lpszMenuName = MAKEINTRESOURCE(IDR_MAIN_MENU);
 	wc.lpszClassName = TEXT("CPPDemo");
 
-	// zapisz identyfikator klasy (nazwa te¿ jest poprawnym identyfikatorem, kwestia gustu)
+	// zapisz identyfikator klasy (nazwa te¿ jest poprawnym identyfikatorem)
 	ATOM aAtom = RegisterClassEx(&wc);
 
-#if defined DEBUG
-	LPCWSTR lpszTitle = TEXT("Aplikacja (DEBUG)");
-#else
-	// wy³¹cz wype³nianie bufora znakami debugowania
+	// wy³¹cz wype³nianie bufora znakami debugowania (0xFE)
 	_CrtSetDebugFillThreshold(NULL);
-	LPCWSTR lpszTitle = TEXT("Aplikacja");
+
+#ifdef DEBUG
+	LPCWSTR lpszTitle = TEXT("BIGOS (DEBUG)");
+	
+	
+#else
+	LPCWSTR lpszTitle = TEXT("BIGOS");
 #endif
+
 	// w³asciwoœci okna:
 	// - przerysuj je przy zmianie rozmiaru w pionie
 	// - przerysuj je przy zmianie rozmiaru w poziomie
@@ -51,8 +53,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		CS_HREDRAW | CS_VREDRAW | WS_VISIBLE | WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
+		640,
+		480,
 		NULL,
 		NULL,
 		NULL,
@@ -60,7 +62,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	if (hwnd == NULL) {
 		AWARIA(TEXT("Tworzenie g³ównego okna"));
 	}
-
+	// przywróæ poprzedni kolor, inaczej wszystkie modu³y mia³yby ¿ó³tawe t³o 
+	wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
 	// zapisz referencjê do klasy w danych okna, "na marginesie"
 	// bêdzie wykorzystywana ponownie
 	// Win32: u¿ywanie GWLP_USERDATA jest mo¿liwe, ale traktowane jako antypraktyka
@@ -82,6 +85,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	iccex.dwICC = ICC_BAR_CLASSES | ICC_TAB_CLASSES | ICC_COOL_CLASSES; // paski narzêdzi, statusu, suwaki, wskazówki, rebary
 	if(!InitCommonControlsEx(&iccex)) AWARIA(TEXT("nie ma kontrolek!"));
 
+	// g³ówna pêtla
 	MSG msg;
 	while (GetMessage(&msg, hwnd, 0, 0) > 0) {
 		if (!TranslateAccelerator(hwnd, hAccel, &msg)) {
@@ -89,6 +93,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 			DispatchMessage(&msg);
 		}
 	}
+
+	// koniec programu
 	return 0;
 
 }
@@ -96,36 +102,74 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 /**
  * Funkcja do obs³ugi g³ównego okna programu
  * 
- * \param hwnd
- * \param uMsg
- * \param wParam
- * \param lParam
- * \return 
+ * \param hwnd - uchwyt do okna
+ * \param uMsg - wiadomoœæ otrzymana w winmain
+ * \param wParam - parametr wiadomoœci
+ * \param lParam - parametr wiadomoœci
+ * \return kod zwrotu
  */
 LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-	HDC hdc = nullptr;
-	static PAINTSTRUCT ps{};
-	static RECT rect{};
+	HDC hdc;
+	PAINTSTRUCT ps;
+	RECT rect{};
+	// do tekstu na ekranie powitalnym
+	STATIC TCHAR lpIntro[256] = {};
+	// nie lubiê D2D
+	STATIC DWrite dw;
+	STATIC BOOL bFastMode = FALSE;
+
 	switch (uMsg) {
-	case WM_CREATE:
+	case WM_CREATE: {
+		
+		LoadString(GetModuleHandle(NULL), IDS_INTRO, lpIntro, 256);
 		// zdob¹dŸ informacje o systemowej czcionce
 		// domyœlnie: Marlett, 8pt
 		hdc = GetDC(hwnd);
 		TEXTMETRIC tm;
 		GetTextMetrics(hdc, &tm);
 		ReleaseDC(hwnd, hdc);
-		hdc = nullptr;
+
 		return 0;
-	case WM_PAINT:
-		if(hdc == nullptr) hdc = BeginPaint(hwnd, &ps);
-		GetClientRect(hwnd, &rect);
-		DrawText(hdc, TEXT("CHUJ"), -1, &rect, DT_SINGLELINE);
+	}
+	case WM_PAINT: {
+		// narysuj startowy tekst
+		hdc = BeginPaint(hwnd, &ps);
+		FillRect(hdc, &ps.rcPaint, reinterpret_cast<HBRUSH>(COLOR_INFOBK + 1));
+	if(bFastMode){
+		SetBkMode(hdc, TRANSPARENT);
+		STATIC HFONT hFont = CreateFont(34, 0, 0, 0, FW_REGULAR, FALSE, FALSE, FALSE,
+			DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS, NULL, CLEARTYPE_QUALITY,
+			DEFAULT_PITCH | FF_SWISS, L"Comic Sans MS");
+		HFONT hOldFont = (HFONT)SelectObject(hdc, hFont);
+		STATIC RECT rText = {};
+		GetClientRect(hwnd, &rText);
+		//ExtTextOut(hdc, 0, 0, ETO_CLIPPED, &rText , lpIntro, lstrlen(lpIntro), NULL);
+		DrawTextEx(hdc, lpIntro, lstrlen(lpIntro), &rText, DT_NOCLIP | DT_WORDBREAK, NULL);
+		// SelectObject(hdc, hOldFont);
+	}
+	else {
+		dw.DrawContent(hwnd, lpIntro, lstrlen(lpIntro), TRUE);
+	}
 		EndPaint(hwnd, &ps);
 		return 0;
+	}
+	case WM_SIZE: {
+		InvalidateRect(hwnd, NULL, TRUE);
+	}
+	/*case WM_EXITSIZEMOVE: {
+		InvalidateRect(hwnd, NULL, TRUE);
+		return 0;
+	}*/
 	case WM_COMMAND:
+		// komendy, tak te z menu, jak i te z akceleratorów
 		switch (LOWORD(wParam)) {
+		case IDM__ZAKO_CZ_TALT_F1: {
+			DestroyWindow(hwnd);
+			// papa
+		}
 		case IDM_O_PROGRAMIE____TF1:
 		case IDR_HELP_SPEEDRUN: {
+			PlaySound(TEXT("tada.wav"), NULL, SND_FILENAME | SND_ASYNC);
 #ifdef _WIN64
 			DialogBox(NULL, MAKEINTRESOURCE(IDD_O_PROGRAMIE), hwnd, DefDialogProc);
 #else
@@ -133,6 +177,8 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 #endif
 			break;
 		}
+
+		// zacznij modu³ Tree
 		case IDM_DRZEWKO___1:
 		case IDR_TREE_SPEEDRUN:
 		{
@@ -141,7 +187,8 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				WNDCLASSEX* pwc = reinterpret_cast<WNDCLASSEX*>(GetWindowLongPtr(hwnd, 0));
 				pwc->lpfnWndProc = TreeWndProc;
 				pwc->cbClsExtra = sizeof(HWND);
-			 	pwc->style =  CS_HREDRAW | CS_VREDRAW;
+			 	//pwc->style =  CS_HREDRAW | CS_VREDRAW;
+				pwc->style = NULL;
 				pwc->lpszClassName = TEXT("Tree");
 				pwc->lpszMenuName = NULL;
 				atom = RegisterClassEx(pwc);
@@ -161,6 +208,8 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		}
+
+		// zacznij modu³ GraphicsDemo
 		case IDM_W_A_CIWO_CI_GRAFIKI___1: {
 			static ATOM atom = 0;
 			if (atom == 0) {
@@ -170,6 +219,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				pwc->style = CS_HREDRAW | CS_VREDRAW;
 				pwc->lpszClassName = TEXT("GraphicsDemo");
 				pwc->lpszMenuName = NULL;
+				pwc->hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
 				atom = RegisterClassEx(pwc);
 			}
 
@@ -177,7 +227,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				hwnd, NULL, NULL, NULL);
 
 			UpdateWindow(childHwnd);
-			ShowWindow(childHwnd, 1);
+			ShowWindow(childHwnd, SW_SHOW);
 
 			MSG msg;
 			while (GetMessage(&msg, childHwnd, 0, 0) > 0) {
@@ -187,13 +237,16 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			// chuj->atom = 0;
 			break;
 		}
+
+		// zacznij modu³ Trigonometry
 		case IDM__POKAZ_TRYGONOMETRII___1:
 		case IDR_TRIG_SPEEDRUN:{
 			static ATOM atom;
 			if (atom == 0) {
 				WNDCLASSEX* pwc = reinterpret_cast<WNDCLASSEX*>(GetWindowLongPtr(hwnd, 0));
 				pwc->lpfnWndProc = TrigonometryWndProc;
-				pwc->cbWndExtra = 0;
+				//pwc->cbWndExtra = sizeof(HACCEL*);
+				pwc->cbWndExtra = NULL;
 				pwc->style = CS_HREDRAW | CS_VREDRAW;
 				//pwc->style = NULL;
 				pwc->lpszClassName = TEXT("TrigDemo");
@@ -204,6 +257,9 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			HWND childHwnd = CreateWindowEx(0, reinterpret_cast<LPCWSTR>(atom), TEXT("Pokaz rysowania trygonometrii"),
 				WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, 1200, 800,
 				hwnd, NULL, NULL, NULL);
+			SetWindowLongPtr(childHwnd, GWL_STYLE, GetWindowLong(childHwnd, GWL_STYLE)&~WS_MINIMIZEBOX);
+			// HACCEL hAccel = LoadAccelerators(GetModuleHandle(NULL), MAKEINTRESOURCE(IDR_AKCELERATOR_CZASTECZEK));
+			// SetWindowLongPtr(childHwnd, 0, (LONG_PTR)&hAccel);
 			UpdateWindow(childHwnd);
 			ShowWindow(childHwnd, 1);
 			MSG msg;
@@ -213,9 +269,26 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		}		
+
+		// prze³¹cz tryb szybki/wolny
+		case IDR_TOGGLE_EFF_MODE:
+		case IDM_TOGGLE_EFF_MODE:{
+			bFastMode = !bFastMode;
+			RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+			break;
 		}
-	default: return DefWindowProc(hwnd, uMsg, wParam, lParam);
+
+		// Nie ma tego w menu: Shift + F4 wyrzuca klasê, zmniejszaj¹c zu¿ycie pamiêci ~10-krotnie
+		case IDR_DESTROY_D2D1: {
+			bFastMode = TRUE;
+			dw.~DWrite();
+			RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+			break;
+		}
+		}
+	default: return DefWindowProc(hwnd, uMsg, wParam, lParam); 
 	}
+	return 0;
 	
 }
 INT_PTR DefDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {

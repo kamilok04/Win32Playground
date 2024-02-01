@@ -198,6 +198,8 @@ INT_PTR TreeDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		//}
 		HWND hList = GetDlgItem(hwnd, IDC_TREE_LEAVES);
 		BOOL bListVisible = IsWindowVisible(hList);
+
+		// podmieñ okna
 		switch (LOWORD(wParam)) {
 
 		case IDC_RADIO_PROB: {
@@ -207,30 +209,6 @@ INT_PTR TreeDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 				ShowWindow(GetDlgItem(hwnd, IDC_TREE_AUTO_LABEL), SW_HIDE);
 				ShowWindow(GetDlgItem(hwnd, IDC_TREE_AUTO_EDIT), SW_HIDE);
 			}
-			LVCOLUMN lvc = {};
-			ListView_GetColumn(hList, COLUMNS::VALUE, &lvc);
-			TCHAR psBuffer[50] = {};
-			LoadString(GetModuleHandle(NULL), IDS_PROB_VALUE, psBuffer, sizeof(psBuffer) / sizeof(psBuffer[0]));
-			lvc.pszText = psBuffer;
-			//ListView_SetColumn(hList, COLUMNS::VALUE, &lvc);
-			ListView_SetItemText(hList, 0, 0, psBuffer);
-
-
-			break;
-		}
-		case IDC_RADIO_FREQ: {
-			wmMode = WORK_MODE::FREQUENCY;
-			if (!bListVisible) {
-				ShowWindow(GetDlgItem(hwnd, IDC_TREE_AUTO_LABEL), SW_HIDE);
-				ShowWindow(GetDlgItem(hwnd, IDC_TREE_AUTO_EDIT), SW_HIDE);
-				ShowWindow(hList, SW_SHOW);
-			}
-			LVCOLUMN lvc = {};
-			ListView_GetColumn(hList, COLUMNS::VALUE, &lvc);
-			TCHAR psBuffer[50] = {};
-			LoadString(GetModuleHandle(NULL), IDS_FREQ_VALUE, psBuffer, sizeof(psBuffer) / sizeof(psBuffer[0]));
-			lvc.pszText = psBuffer;
-			ListView_SetItemText(hList, 0, 0, psBuffer);
 
 			break;
 		}
@@ -279,9 +257,6 @@ INT_PTR TreeDialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			SendMessage(GetParent(hwnd), WM_DESTROY, NULL, NULL);
 			SetForegroundWindow(GetGrandParent(hwnd));
 			return TRUE;
-
-
-
 		}
 		break;
 	}
@@ -333,19 +308,26 @@ static BOOL InsertListItem(HWND hList, struct LEAF& LEAF) {
 
 VOID GenerateTree(LEAF_VECTOR& vLeaves, HWND hwnd, UINT cLeaves) {
 
-	// TODO
-	// zaimplementowaæ algorytm opisany wy¿ej
-	// i narysowaæ to drzewko
-
 	STATIC LEAF lOptimizedTree;
 	if (bUpdateTree) lOptimizedTree = PrepareTree(vLeaves);
 
 	// TODO: przygotuj okno-dziecko, w nim bêdzie drzewo
 	// okno-dziecko jest potrzebne w razie przewijania ekranu
 
-	TREEPROPERTIES tp = CreateTreeProperties(lOptimizedTree, cLeaves, hwnd);
+	TREEPROPERTIES tp=  CreateTreeProperties(lOptimizedTree, cLeaves, hwnd);
+	if (cLeaves == 1) {
+		RECT rDlg = {};
+		GetClientRect(GetFirstChild(hwnd), &rDlg);
+		LONG cxDlg = rDlg.right - rDlg.left;
+		LONG cyDlg = rDlg.bottom - rDlg.top;
 
-	DrawTree(lOptimizedTree, hwnd, tp);
+		POINT pStart = { cxDlg / 2, cyDlg + 10};
+		STATIC DRAWTEXTPARAMS dtParams = {};
+		dtParams.cbSize = sizeof(DRAWTEXTPARAMS);
+		dtParams.iLeftMargin = dtParams.iRightMargin = 10;
+		DrawLeaf(hwnd, &pStart, vLeaves[0], 0, TRUE, dtParams, tp, NULL, FALSE);
+	} else
+		DrawTree(lOptimizedTree, hwnd, tp);
 
 	bUpdateTree = FALSE;
 	return;
@@ -422,7 +404,9 @@ BOOL HandleConflicts(ConflictsArray& bConflicts, HWND hDlg) {
 			hIcon = static_cast<HICON>(LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_WARN), IMAGE_ICON, LR_DEFAULTSIZE, LR_DEFAULTSIZE, LR_SHARED));
 			SendDlgItemMessage(hDlg, IDC_WARN_PLACEHOLDER, STM_SETIMAGE, IMAGE_ICON, (LPARAM)hIcon);
 		}
-		if (hIcon == NULL) AWARIA(TEXT("gdzie ikona?"));
+#ifdef DEBUG
+	if (hIcon == NULL) AWARIA(TEXT("gdzie ikona?"));
+#endif // DEBUG
 		ShowWindow(hWarn, SW_NORMAL);
 	}
 	else {
@@ -438,8 +422,7 @@ BOOL HandleConflicts(ConflictsArray& bConflicts, HWND hDlg) {
 wymagania wstêpne:
 	+ u¿ytkownik poda³ prawdopodobieñstwa, upewnij siê,
 	  ¿e s¹ znormalizowane (suma == 1) robi to szablon VerifyAndProcessInput w Drzewko.h
-	+ na ten moment nie zabrania siê u¿ytkownikowi tworzenia Ÿle znormalizowanych drzew,
-	  pojawia siê jedynie ostrze¿enie
+	  ZMIANA: algorytm pozwala na narysowanie Ÿle znormalizowanych drzew, u¿ytkownik jest informowany o problemie.
 
 0.	jeœli w liœcie jest jeden element, drzewo jest gotowe
 1.	upewnij siê, ¿e liœcie s¹ rosn¹co posortowane
@@ -472,7 +455,6 @@ LEAF PrepareTree(LEAF_VECTOR& vLeaves) {
 	*/
 	STATIC LEAF_VECTOR vDone(4 * sizeof(vLeaves));
 	vDone.clear();
-
 	while (vLeaves.size() > 1) { // 0
 		// TODO: podmieniæ algorytm na w³asny
 		// dobrym pomys³em bêdzie smoothsort (?), bo pracowaæ bêdzie siê na prawie-posortowanym wektorze
@@ -571,7 +553,7 @@ VOID DrawTree(LEAF& lTree, HWND hwnd, TREEPROPERTIES& tp) {
 		static_cast<LONG>(cyDlg + 20) };
 	RECT rBubbleRect = CreateRect(pStart, tp.cxInnerLeafWidth, tp.cyTotalLeafHeight);
 	Ellipse(hdc, rBubbleRect.left, rBubbleRect.top, rBubbleRect.right, rBubbleRect.bottom);
-	DrawTextEx(hdc, (LPWSTR)lTree.tFPValue.c_str(), lTree.tFPValue.length(), &rBubbleRect, DT_VCENTER | DT_SINGLELINE, &dtParams);
+	DrawTextEx(hdc, (LPWSTR)lTree.tFPValue.c_str(), (INT) lTree.tFPValue.length(), &rBubbleRect, DT_VCENTER | DT_SINGLELINE, &dtParams);
 	POINT pTarget = CenterDown(rBubbleRect);
 	MoveToEx(hdc, pTarget.x, pTarget.y, NULL);
 
@@ -585,7 +567,7 @@ VOID DrawTree(LEAF& lTree, HWND hwnd, TREEPROPERTIES& tp) {
 		// 3
 		while (lCurrentLeaf.LeftChild != nullptr) {
 			iNestLevel++;
-			DrawLeaf(hwnd, &pTarget, *lCurrentLeaf.LeftChild, iNestLevel, FALSE, dtParams, tp, hdc);
+			DrawLeaf(hwnd, &pTarget, *lCurrentLeaf.LeftChild, iNestLevel, FALSE, dtParams, tp, hdc, TRUE);
 			lvParents.push_back(lCurrentLeaf);
 			lCurrentLeaf = *lCurrentLeaf.LeftChild;
 		}
@@ -612,7 +594,7 @@ VOID DrawTree(LEAF& lTree, HWND hwnd, TREEPROPERTIES& tp) {
 		// 5
 		if (lCurrentLeaf.RightChild != nullptr) {
 			iNestLevel++;
-			DrawLeaf(hwnd, &pTarget, *lCurrentLeaf.RightChild, iNestLevel, TRUE, dtParams, tp, hdc);
+			DrawLeaf(hwnd, &pTarget, *lCurrentLeaf.RightChild, iNestLevel, TRUE, dtParams, tp, hdc, TRUE);
 			lvParents.push_back(lCurrentLeaf);
 			lCurrentLeaf = *lCurrentLeaf.RightChild;
 		}
@@ -656,37 +638,49 @@ POINT CenterDown(LPRECT r) {
  *		Funkcja przyjmuje œrodek dolnej krawêdzi starszego liœcia
  *		i zwraca œrodek dolnej krawêdzi m³odzego liœcia
  **/
-VOID DrawLeaf(HWND hwnd, PPOINT pStart, LEAF& lChild, UINT iIncomingLevel, BOOL isRight, DRAWTEXTPARAMS& dtParams, TREEPROPERTIES& TreeProps, HDC hdc = NULL) {
+VOID DrawLeaf(HWND hwnd, PPOINT pStart, LEAF& lChild, UINT iIncomingLevel, BOOL isRight, DRAWTEXTPARAMS& dtParams, TREEPROPERTIES& TreeProps, HDC hdc = NULL, BOOL bDrawLine = TRUE) {
 	if (hdc == NULL) hdc = GetDC(hwnd);
 	UINT cxLineWidth = TreeProps.cxTreeWidth >> (iIncomingLevel + 1);
 	UINT cyLineHeight = RECT_HEIGHT; // mas³o maœlane
 	BOOL bNarrow = TreeProps.bNarrow;
 	BOOL bFinal = lstrlen(lChild.tSymbol.data()) != 0;
-	BOOL bSymbol = bNarrow & bFinal;
+	BOOL bSymbol = (~bNarrow) & bFinal;
+	RECT rect = {};
 	if (isRight)
 		pStart->x += cxLineWidth;
 	else
 		pStart->x -= cxLineWidth;
 	pStart->y += cyLineHeight;
-	LineTo(hdc, pStart->x, pStart->y);
+	if (bDrawLine)
+		LineTo(hdc, pStart->x, pStart->y);
 
 	// jestem na œroku górnej krawêdzi liœcia, chcê byæ w lewym górnym rogu
-	pStart->x -= TreeProps.cxInnerLeafWidth / 2;
-	RECT rect = CreateRect(pStart, TreeProps.cxInnerLeafWidth, TreeProps.cyTotalLeafHeight);
+
+	
+	if ((bNarrow & bFinal) && iIncomingLevel > 2) {
+		pStart->x -= TreeProps.cxInnerLeafWidth / 2;
+		 rect = CreateRect(pStart, (INT)(TreeProps.cxInnerLeafWidth / 1.4), TreeProps.cyTotalLeafHeight);
+	}
+	else {
+		pStart->x -= TreeProps.cxInnerLeafWidth / 2;
+		rect = CreateRect(pStart, TreeProps.cxInnerLeafWidth, TreeProps.cyTotalLeafHeight);
+	}
+	
 	Rectangle(hdc, rect.left, rect.top, rect.right, rect.bottom);
 	if (lstrlen(lChild.tSymbol.data()) != 0) {
 		TSTRING(40) lpszBuffer = {};	
 		std::wstring lpszTmp;
-		if (bSymbol)
+		if ((bSymbol || bNarrow & bFinal) && iIncomingLevel <= 5) {
 			lpszTmp = lChild.tFPValue.substr(0, 5);
+		}
 		else lpszTmp = lChild.tFPValue.substr(0, 3);
-		 _snwprintf_s(lpszBuffer.data(), 40, 40, TEXT("%s (%s)"), lpszTmp.c_str(), lChild.tSymbol.c_str());
+		 _snwprintf_s(lpszBuffer.data(), 10, 40, TEXT("%s (%s)"), lpszTmp.c_str(), lChild.tSymbol.c_str());
 		SetTextColor(hdc, RED);
 		DrawTextEx(hdc, lpszBuffer.data(), 40, &rect, DT_NOCLIP | DT_VCENTER | DT_SINGLELINE, &dtParams);
 		SetTextColor(hdc, BLACK);
 	}
 	else
-		DrawTextEx(hdc, (LPWSTR)lChild.tFPValue.c_str(), lChild.tFPValue.length(), &rect, DT_VCENTER | DT_SINGLELINE, &dtParams);
+		DrawTextEx(hdc, (LPWSTR)lChild.tFPValue.c_str(), (INT) lChild.tFPValue.length(), &rect, DT_VCENTER | DT_SINGLELINE, &dtParams);
 	// ostatnia korekta: jestem w lewym górnym rogu liœcia, chcê byæ na œrodku dolnej krawêdzi
 	pStart->x += TreeProps.cxInnerLeafWidth / 2;
 	pStart->y += TreeProps.cyTotalLeafHeight;
@@ -710,11 +704,10 @@ TREEPROPERTIES CreateTreeProperties(LEAF& lTree, UINT cLeaves, HWND hwnd) {
 	tp.cNestLevels = ilog2<UINT>(cLeaves);
 	if (tp.cNestLevels >= 3) bNarrowMode = TRUE;
 	tp.cxTreeWidth = ToHigherTwoPower<UINT>(cLeaves) * tp.cxInnerLeafWidth;
-	if(bNarrowMode)
-		tp.cxTreeWidth = tp.cxTreeWidth / 1.5;
+	if (bNarrowMode) {
+		tp.cxTreeWidth = (UINT)(tp.cxTreeWidth / 1.7);
+	}
 	tp.cxTotalLeafWidth = tp.cxTreeWidth >> (tp.cNestLevels + 2);
-	if(bNarrowMode)
-		tp.cxTotalLeafWidth = tp.cxTotalLeafWidth / 1.5;
 	tp.cyTotalLeafHeight = 2 * (cyChar + tm.tmExternalLeading); // BARDZO wstêpne za³o¿enie
 	tp.bNarrow= bNarrowMode;
 	ReleaseDC(hwnd, hdc);
@@ -730,7 +723,7 @@ LEAF_VECTOR CreateTreeFromList(HWND hList) {
 	LEAF_VECTOR vLeaves;
 	LEAF lLeaf = {};
 	TCHAR psBuffer[60] = {};
-	for (UINT i = 0; i < ListView_GetItemCount(hList); i++) {
+	for (INT i = 0; i < ListView_GetItemCount(hList); i++) {
 		ListView_GetItemText(hList, i, static_cast<INT>(COLUMNS::ID), psBuffer, 50);
 		lLeaf.ID = _wtoi(psBuffer);
 		ListView_GetItemText(hList, i, static_cast<INT>(COLUMNS::SYMBOL), psBuffer, 50);
@@ -756,7 +749,7 @@ LEAF_VECTOR ProcessAutoText(PTCHAR psBuffer) {
 			mLeaves[*psBuffer]++;
 		}
 	}
-	UINT psLength = psBuffer - psCopy;
+	__int64 psLength = psBuffer - psCopy;
 	if (psLength == 0) {
 		MessageBox(NULL, TEXT("Nie podano tekstu!"), TEXT("B³¹d"), MB_OK | MB_ICONERROR);
 		return LEAF_VECTOR();

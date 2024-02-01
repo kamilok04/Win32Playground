@@ -97,7 +97,7 @@ BOOL CompareFPValues(const LEAF, const LEAF);
 RECT CreateRect(POINT, INT, INT);
 POINT CenterDown(RECT);
 POINT CenterDown(LPRECT);
-VOID DrawLeaf(HWND, PPOINT, LEAF&, UINT, BOOL, DRAWTEXTPARAMS&, TREEPROPERTIES&, HDC);
+VOID DrawLeaf(HWND, PPOINT, LEAF&, UINT, BOOL, DRAWTEXTPARAMS&, TREEPROPERTIES&, HDC, BOOL);
 TREEPROPERTIES CreateTreeProperties(LEAF&, UINT, HWND);
 LEAF_VECTOR CreateTreeFromList(HWND hList);
 LEAF_VECTOR ProcessAutoText(PTCHAR);
@@ -235,7 +235,7 @@ BOOL VerifyAndProcessInput(HWND hEdit,
 		case WORK_MODE::FREQUENCY: {
 			UINT uSumOfFreq = 0;
 			UINT cCols = ListView_GetItemCount(hList);
-			for (INT iCol = 0; iCol < cCols; iCol++) {
+			for (UINT iCol = 0; iCol < cCols; iCol++) {
 				TSTRING(20) bufor = {};
 				ListView_GetItemText(hList, iCol, lvthi.iSubItem, bufor.data(), 20);
 				UINT uFreq;
@@ -246,9 +246,9 @@ BOOL VerifyAndProcessInput(HWND hEdit,
 	}
 		   if (compareString != COMPARE_STRING_STRING)
 			   delete[] cleanInput;
-		   HandleConflicts(conflicts, GetGrandParent(hEdit));
+		   
 		   break;
 	}
-
+		HandleConflicts(conflicts, GetGrandParent(hEdit));
 		   return TRUE;
 	}

@@ -154,7 +154,7 @@
     <ClInclude Include="DWrite.h" />
     <ClInclude Include="GraphicsDemo.h" />
     <ClInclude Include="main.h" />
-    <ClInclude Include="resource.h" />
+    <ClInclude Include="Resources.h" />
     <ClInclude Include="Trigonometry.h" />
   </ItemGroup>
   <ItemGroup>
